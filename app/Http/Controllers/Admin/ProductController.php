@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\Brand;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
@@ -12,16 +13,16 @@ class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with('category')->latest()->paginate(15);
+        $products = Product::with('category', 'brand')->latest()->paginate(15);
         return view('admin.products.index', compact('products'));
     }
 
     public function create()
     {
         $categories = Category::all();
-        return view('admin.products.create', compact('categories'));
+        $brands = Brand::all();
+        return view('admin.products.create', compact('categories', 'brands'));
     }
-
     public function store(Request $request)
     {
         $validated = $request->validate([
@@ -42,7 +43,8 @@ class ProductController extends Controller
     public function edit(Product $product)
     {
         $categories = Category::all();
-        return view('admin.products.edit', compact('product', 'categories'));
+        $brands = Brand::all();
+        return view('admin.products.edit', compact('product', 'categories', 'brands'));
     }
 
     public function update(Request $request, Product $product)
