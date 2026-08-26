@@ -8,7 +8,7 @@
                 <span class="text-xs font-normal text-slate-400">Nhập đầy đủ thông tin chi tiết</span>
             </h2>
 
-            <form action="{{ route('admin.products.store') }}" method="POST" class="space-y-4">
+            <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
 
                 <!-- Tên sản phẩm -->
@@ -47,6 +47,16 @@
                         </select>
                         @error('brand_id') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
                     </div>
+                </div>
+
+                <!-- Upload nhiều hình ảnh -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Hình ảnh sản phẩm (có thể chọn nhiều ảnh)</label>
+                    <input type="file" name="images[]" multiple accept="image/*" 
+                           class="w-full bg-slate-950/80 border border-slate-800 text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 rounded-xl cursor-pointer">
+                    <p class="text-[11px] text-slate-500 mt-1">Hỗ trợ các định dạng: JPEG, PNG, JPG, WEBP, GIF (Tối đa 2MB/ảnh). Ảnh đầu tiên sẽ là ảnh chính.</p>
+                    @error('images') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
+                    @error('images.*') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- Giá & Tồn kho -->

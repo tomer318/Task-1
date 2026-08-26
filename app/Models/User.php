@@ -30,4 +30,17 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+    protected $fillable = [
+        'name',
+        'email',
+        'password',
+        'phone',
+        'gender',
+        'birthday',
+    ];
+
+    public function addresses()
+    {
+        return $this->hasMany(UserAddress::class);
+    }
 }

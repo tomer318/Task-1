@@ -8,7 +8,7 @@
                 <span class="text-xs font-normal text-slate-400">ID: {{ $product->slug }}</span>
             </h2>
 
-            <form action="{{ route('admin.products.update', $product) }}" method="POST" class="space-y-4">
+            <form action="{{ route('admin.products.update', $product) }}" method="POST" enctype="multipart/form-data" class="space-y-4">
                 @csrf
                 @method('PUT')
 
@@ -47,6 +47,33 @@
                         </select>
                         @error('brand_id') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
                     </div>
+                </div>
+
+                <!-- Danh sách ảnh hiện tại (nếu có) -->
+                @if($product->images && $product->images->count() > 0)
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Ảnh hiện tại</label>
+                        <div class="grid grid-cols-3 sm:grid-cols-5 gap-3 p-3 bg-slate-950/80 border border-slate-800 rounded-xl">
+                            @foreach($product->images as $img)
+                                <div class="relative group aspect-square rounded-lg overflow-hidden border border-slate-800 bg-slate-900 flex items-center justify-center">
+                                    <img src="{{ asset('storage/' . $img->image_path) }}" alt="Product image" class="w-full h-full object-cover">
+                                    @if($img->is_primary)
+                                        <span class="absolute top-1 left-1 bg-rose-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">Chính</span>
+                                    @endif
+                                </div>
+                            @endforeach
+                        </div>
+                    </div>
+                @endif
+
+                <!-- Upload thêm ảnh mới -->
+                <div>
+                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Tải thêm ảnh mới</label>
+                    <input type="file" name="images[]" multiple accept="image/*" 
+                           class="w-full bg-slate-950/80 border border-slate-800 text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 rounded-xl cursor-pointer">
+                    <p class="text-[11px] text-slate-500 mt-1">Chọn thêm các file ảnh mới nếu muốn bổ sung vào bộ sưu tập.</p>
+                    @error('images') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
+                    @error('images.*') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
                 </div>
 
                 <!-- Giá & Tồn kho -->

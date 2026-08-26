@@ -3,17 +3,20 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Models\Product;
 use App\Models\Category;
 use App\Models\Brand;
-use App\Models\Product;
-use Illuminate\Http\Request;
+use App\Models\ProductImage;
+use App\Http\Requests\Admin\StoreProductRequest;
+use App\Http\Requests\Admin\UpdateProductRequest;
 use Illuminate\Support\Str;
+use Illuminate\Support\Facades\Storage;
 
 class ProductController extends Controller
 {
     public function index()
     {
-        $products = Product::with('category', 'brand')->latest()->paginate(15);
+        $products = Product::with(['category', 'brand', 'images'])->latest()->paginate(15);
         return view('admin.products.index', compact('products'));
     }
 
@@ -23,50 +26,62 @@ class ProductController extends Controller
         $brands = Brand::all();
         return view('admin.products.create', compact('categories', 'brands'));
     }
-    public function store(Request $request)
+
+    public function store(StoreProductRequest $request)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'description' => 'nullable|string',
-        ]);
+        $data = $request->validated();
+        $data['slug'] = Str::slug($data['name']) . '-' . uniqid();
 
-        $validated['slug'] = Str::slug($validated['name']) . '-' . time();
+        $product = Product::create($data);
 
-        Product::create($validated);
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $imageFile) {
+                $path = $imageFile->store('products', 'public');
+                $product->images()->create([
+                    'image_path' => $path,
+                    'is_primary' => $index === 0,
+                ]);
+            }
+        }
 
-        return redirect()->route('admin.products.index')->with('success', 'Thêm sản phẩm thành công!');
+        return redirect()->route('admin.products.index')->with('success', 'Thêm sản phẩm và tải ảnh thành công!');
     }
 
     public function edit(Product $product)
     {
         $categories = Category::all();
         $brands = Brand::all();
+        $product->load('images');
         return view('admin.products.edit', compact('product', 'categories', 'brands'));
     }
 
-    public function update(Request $request, Product $product)
+    public function update(UpdateProductRequest $request, Product $product)
     {
-        $validated = $request->validate([
-            'name' => 'required|string|max:255',
-            'category_id' => 'required|exists:categories,id',
-            'price' => 'required|numeric|min:0',
-            'stock' => 'required|integer|min:0',
-            'description' => 'nullable|string',
-        ]);
+        $data = $request->validated();
+        $data['slug'] = Str::slug($data['name']) . '-' . $product->id;
 
-        $validated['slug'] = Str::slug($validated['name']) . '-' . $product->id;
+        $product->update($data);
 
-        $product->update($validated);
+        if ($request->hasFile('images')) {
+            foreach ($request->file('images') as $index => $imageFile) {
+                $path = $imageFile->store('products', 'public');
+                $product->images()->create([
+                    'image_path' => $path,
+                    'is_primary' => $product->images()->count() === 0 && $index === 0,
+                ]);
+            }
+        }
 
         return redirect()->route('admin.products.index')->with('success', 'Cập nhật sản phẩm thành công!');
     }
 
     public function destroy(Product $product)
     {
+        foreach ($product->images as $img) {
+            Storage::disk('public')->delete($img->image_path);
+        }
         $product->delete();
-        return redirect()->route('admin.products.index')->with('success', 'Đã xóa sản phẩm thành công!');
+
+        return redirect()->route('admin.products.index')->with('success', 'Đã xóa sản phẩm!');
     }
 }
