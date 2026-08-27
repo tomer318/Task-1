@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Product;
 use Illuminate\Http\Request;
+use App\Models\Coupon;
 
 class CartController extends Controller
 {
@@ -80,6 +81,52 @@ class CartController extends Controller
         }
 
         return redirect()->route('cart.index');
+    }
+
+    public function applyCoupon(Request $request)
+    {
+        $request->validate(['code' => 'required|string']);
+        
+        $code = strtoupper(trim($request->code));
+        $coupon = Coupon::where('code', $code)->where('is_active', true)->first();
+
+        if (!$coupon) {
+            return back()->with('error', 'Mã giảm giá không tồn tại hoặc đã bị khóa!');
+        }
+
+        if ($coupon->expires_at && $coupon->expires_at->isPast()) {
+            return back()->with('error', 'Mã giảm giá đã hết hạn sử dụng!');
+        }
+
+        if ($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit) {
+            return back()->with('error', 'Mã giảm giá đã hết lượt sử dụng!');
+        }
+
+        $cart = session('cart', []);
+        $subtotal = 0;
+        foreach ($cart as $item) {
+            $subtotal += $item['price'] * $item['quantity'];
+        }
+
+        if ($subtotal < $coupon->min_order_value) {
+            $formattedMin = number_format($coupon->min_order_value, 0, ',', '.');
+            return back()->with('error', 'Đơn hàng tối thiểu phải từ ' . $formattedMin . '₫ mới được áp dụng mã này!');
+        }
+
+        session()->put('coupon', [
+            'code' => $coupon->code,
+            'type' => $coupon->type,
+            'value' => $coupon->value,
+            'min_order_value' => $coupon->min_order_value,
+        ]);
+
+        return back()->with('success', 'Áp dụng mã giảm giá ' . $coupon->code . ' thành công!');
+    }
+
+    public function removeCoupon()
+    {
+        session()->forget('coupon');
+        return back()->with('success', 'Đã hủy mã giảm giá!');
     }
 
     public function clear()

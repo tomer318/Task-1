@@ -35,7 +35,7 @@ class UserAddressController extends Controller
             'is_default' => $request->has('is_default'),
         ]);
 
-        return redirect()->route('profile.edit')->with('status', 'address-created');
+        return redirect()->route('profile.user.info')->with('status', 'address-created');
     }
 
     public function destroy(UserAddress $address)
@@ -44,6 +44,6 @@ class UserAddressController extends Controller
             $address->delete();
         }
 
-        return redirect()->route('profile.edit')->with('status', 'address-deleted');
+        return redirect()->route('profile.user.info')->with('status', 'address-deleted');
     }
 }

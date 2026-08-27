@@ -3,8 +3,8 @@
          x-data="{
              selectedItems: {{ Js::from(array_keys(session('cart', []))) }},
              cartItems: {{ Js::from(session('cart', [])) }},
+             coupon: {{ Js::from(session('coupon')) }},
              
-             // Kiểm tra xem đã chọn tất cả chưa
              get selectAll() {
                  return this.selectedItems.length === Object.keys(this.cartItems).length && Object.keys(this.cartItems).length > 0;
              },
@@ -16,7 +16,6 @@
                  }
              },
 
-             // Tính tổng số lượng sản phẩm được chọn
              get totalQuantity() {
                  let qty = 0;
                  for (let key of this.selectedItems) {
@@ -27,7 +26,6 @@
                  return qty;
              },
 
-             // Tính tổng tiền hàng dựa trên các item được tick chọn
              get totalPrice() {
                  let total = 0;
                  for (let key of this.selectedItems) {
@@ -36,6 +34,37 @@
                      }
                  }
                  return total;
+             },
+
+             // Tính số tiền được giảm từ coupon
+             get discountAmount() {
+                 if (!this.coupon || this.totalPrice === 0) return 0;
+                 
+                 // Kiểm tra đơn tối thiểu
+                 if (this.totalPrice < parseFloat(this.coupon.min_order_value || 0)) {
+                     return 0;
+                 }
+
+                 let discount = 0;
+                 if (this.coupon.type === 'percent') {
+                     discount = (this.totalPrice * parseFloat(this.coupon.value)) / 100;
+                 } else {
+                     discount = parseFloat(this.coupon.value);
+                 }
+
+                 return discount > this.totalPrice ? this.totalPrice : discount;
+             },
+
+             // Phí vận chuyển: Miễn phí nếu tổng tiền >= 300k, ngược lại tính 30k (nếu có chọn sản phẩm)
+             get shippingFee() {
+                 if (this.totalPrice === 0) return 0;
+                 return this.totalPrice >= 300000 ? 0 : 30000;
+             },
+
+             // Tổng thanh toán cuối cùng = Tiền hàng - Giảm giá + Phí ship
+             get finalTotal() {
+                 if (this.totalPrice === 0) return 0;
+                 return Math.max(0, this.totalPrice - this.discountAmount + this.shippingFee);
              },
 
              formatMoney(val) {
@@ -54,6 +83,18 @@
                 📦 Miễn phí vận chuyển với đơn hàng từ 300.000₫
             </div>
         </div>
+
+        <!-- Thông báo Flash Message -->
+        @if (session('success'))
+            <div class="flex items-center gap-3 bg-emerald-950/60 border border-emerald-800 text-emerald-300 px-4 py-3 rounded-2xl text-xs">
+                <span>{{ session('success') }}</span>
+            </div>
+        @endif
+        @if (session('error'))
+            <div class="flex items-center gap-3 bg-rose-950/60 border border-rose-800 text-rose-300 px-4 py-3 rounded-2xl text-xs">
+                <span>{{ session('error') }}</span>
+            </div>
+        @endif
 
         @if(session('cart') && count(session('cart')) > 0)
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
@@ -145,10 +186,37 @@
                     <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5 sticky top-24">
                         <h2 class="font-bold text-sm text-white pb-3 border-b border-slate-800">Thông tin đơn hàng</h2>
 
-                        <!-- Mã giảm giá -->
-                        <div class="flex items-center justify-between p-3 bg-slate-950 border border-slate-800 rounded-2xl text-xs">
-                            <span class="text-slate-300 flex items-center gap-2">🎟️ Áp dụng mã giảm giá</span>
-                            <button type="button" class="text-rose-400 font-bold hover:underline">Chọn</button>
+                        <!-- Khối Mã Giảm Giá -->
+                        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 space-y-3">
+                            <div class="text-xs font-bold text-slate-300 uppercase tracking-wider flex items-center gap-2">
+                                <svg class="w-4 h-4 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                                Mã ưu đãi / Voucher
+                            </div>
+
+                            @if (session('coupon'))
+                                <div class="flex items-center justify-between bg-rose-950/40 border border-rose-800/60 px-3 py-2.5 rounded-xl text-xs">
+                                    <div>
+                                        <span class="font-mono font-bold text-rose-400">{{ session('coupon')['code'] }}</span>
+                                        <span class="text-slate-400 text-[11px] block">
+                                            Mức giảm: {{ session('coupon')['type'] === 'percent' ? session('coupon')['value'] . '%' : number_format(session('coupon')['value'], 0, ',', '.') . '₫' }}
+                                        </span>
+                                    </div>
+                                    <form action="{{ route('cart.coupon.remove') }}" method="POST">
+                                        @csrf
+                                        @method('DELETE')
+                                        <button type="submit" class="text-slate-400 hover:text-rose-400 text-xs font-semibold underline">Gỡ mã</button>
+                                    </form>
+                                </div>
+                            @else
+                                <form action="{{ route('cart.coupon.apply') }}" method="POST" class="flex gap-2">
+                                    @csrf
+                                    <input type="text" name="code" placeholder="Nhập mã giảm giá..." required 
+                                        class="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-3 py-2 text-xs text-white uppercase focus:ring-rose-500 focus:border-rose-500 font-mono">
+                                    <button type="submit" class="px-4 py-2 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-bold rounded-xl text-xs shadow-md transition">
+                                        Áp dụng
+                                    </button>
+                                </form>
+                            @endif
                         </div>
 
                         <!-- Chi tiết giá tiền -->
@@ -161,9 +229,21 @@
                                 <span class="text-slate-400">Tổng tiền hàng:</span>
                                 <span class="font-mono font-bold text-white" x-text="formatMoney(totalPrice)"></span>
                             </div>
-                            <div class="flex justify-between">
+                            
+                            <!-- Hiển thị tiền giảm voucher -->
+                            <template x-if="discountAmount > 0">
+                                <div class="flex justify-between text-emerald-400">
+                                    <span>Giảm giá voucher:</span>
+                                    <span class="font-mono font-bold" x-text="'-' + formatMoney(discountAmount)"></span>
+                                </div>
+                            </template>
+
+                            <div class="flex justify-between items-center">
                                 <span class="text-slate-400">Phí vận chuyển:</span>
-                                <span class="font-mono text-emerald-400 font-bold">Miễn phí</span>
+                                <span class="font-mono font-bold" 
+                                      :class="shippingFee === 0 ? 'text-emerald-400' : 'text-amber-400'"
+                                      x-text="shippingFee === 0 ? 'Miễn phí' : formatMoney(shippingFee)">
+                                </span>
                             </div>
                         </div>
 
@@ -171,7 +251,7 @@
                         <div class="pt-4 border-t border-slate-800 space-y-1">
                             <div class="flex items-baseline justify-between">
                                 <span class="text-xs font-bold text-white">TỔNG TIỀN:</span>
-                                <span class="text-xl font-black text-rose-500 font-mono" x-text="formatMoney(totalPrice)"></span>
+                                <span class="text-xl font-black text-rose-500 font-mono" x-text="formatMoney(finalTotal)"></span>
                             </div>
                             <span class="text-[10px] text-slate-500 block text-right">(Đã bao gồm thuế VAT và được làm tròn)</span>
                         </div>

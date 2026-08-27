@@ -54,30 +54,59 @@
                     Quản Lý Sản Phẩm
                 </a>
 
-                <!-- Danh mục (Placeholder) -->
-                <a href="#" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+                <!-- Danh mục -->
+                <a href="{{ route('admin.categories.index') }}" 
+                class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.categories.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                     <div class="flex items-center gap-3">
-                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/></svg>
                         Danh Mục
                     </div>
-                    <span class="text-[9px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">6 nhóm</span>
+                    <span class="text-[9px] px-1.5 py-0.5 rounded {{ request()->routeIs('admin.categories.*') ? 'bg-white/20 text-white' : 'bg-slate-800 text-slate-400' }}">6 nhóm</span>
                 </a>
 
-                <!-- Đơn hàng (Placeholder) -->
-                <a href="#" class="flex items-center justify-between px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
+                <!-- Thương hiệu -->
+                <a href="{{ route('admin.brands.index') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.brands.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                     <div class="flex items-center gap-3">
-                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                        Thương Hiệu
+                    </div>
+                </a>
+
+                <!-- Đơn hàng -->
+                <a href="{{ route('admin.orders.index') }}" 
+                class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.orders.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                         Đơn Hàng
                     </div>
-                    <span class="text-[9px] bg-rose-950/60 text-rose-400 border border-rose-800/40 px-1.5 py-0.5 rounded font-mono">Mới</span>
+                    @php
+                        $pendingBadgeCount = \App\Models\Order::where('status', 'Chờ xử lý')->count();
+                    @endphp
+                    @if($pendingBadgeCount > 0)
+                        <span class="text-[9px] px-1.5 py-0.5 rounded {{ request()->routeIs('admin.orders.*') ? 'bg-white/20 text-white' : 'bg-rose-950/60 text-rose-400 border border-rose-800/40' }}">
+                            Mới ({{ $pendingBadgeCount }})
+                        </span>
+                    @endif
+                </a>
+
+                <!-- Mã giảm giá -->
+                <a href="{{ route('admin.coupons.index') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.coupons.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
+                        Mã Giảm Giá
+                    </div>
                 </a>
 
                 <div class="pt-3 pb-1 px-3 text-[10px] font-bold text-slate-500 uppercase tracking-wider">Phân Quyền & User</div>
 
                 <!-- Người dùng & Phân quyền -->
-                <a href="#" class="flex items-center gap-3 px-3 py-2.5 rounded-xl text-slate-400 hover:text-white hover:bg-slate-800/60 transition">
-                    <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-                    Người Dùng & Role
+                <a href="{{ route('admin.users.index') }}" class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.users.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+                        Người Dùng & Role
+                    </div>
                 </a>
             </nav>
         </div>
@@ -110,11 +139,6 @@
         <header class="h-16 border-b border-slate-800 bg-slate-900/50 backdrop-blur px-8 flex items-center justify-between">
             <div class="text-xs text-slate-400 font-medium">
                 Khu vực Quản trị &gt; <span class="text-slate-200">{{ $header ?? 'Bảng Điều Khiển' }}</span>
-            </div>
-            <div class="flex items-center gap-3">
-                <a href="{{ route('admin.products.create') }}" class="px-3.5 py-1.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white rounded-lg text-xs font-semibold shadow-sm transition">
-                    + Thêm Sản Phẩm
-                </a>
             </div>
         </header>
 
