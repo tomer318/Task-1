@@ -1,96 +1,170 @@
-<x-admin-layout>
-    <x-slot name="header">Thêm Sản Phẩm Mới</x-slot>
+<x-app-layout>
+    <div class="min-h-screen bg-slate-950 py-8 px-4 sm:px-6 lg:px-8 text-slate-100"
+         x-data="{
+             variants: [{ version_name: 'Tiêu Chuẩn', color_name: 'Đen', price: 0, stock: 10 }],
+             specs: [{ group_name: 'Cấu hình & Bộ nhớ', spec_key: 'Loại CPU', spec_value: '' }],
+             addVariant() {
+                 this.variants.push({ version_name: '', color_name: '', price: 0, stock: 10 });
+             },
+             removeVariant(index) {
+                 this.variants.splice(index, 1);
+             },
+             addSpec() {
+                 this.specs.push({ group_name: 'Cấu hình & Bộ nhớ', spec_key: '', spec_value: '' });
+             },
+             removeSpec(index) {
+                 this.specs.splice(index, 1);
+             }
+         }">
 
-    <div class="max-w-3xl mx-auto">
-        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-2xl">
-            <h2 class="font-bold text-base text-white mb-4 pb-3 border-b border-slate-800 flex items-center justify-between">
-                <span>Thông Tin Thiết Bị Mới</span>
-                <span class="text-xs font-normal text-slate-400">Nhập đầy đủ thông tin chi tiết</span>
-            </h2>
+        <div class="max-w-5xl mx-auto space-y-6">
+            <div class="flex items-center justify-between">
+                <h1 class="text-xl font-black text-white">Thêm Sản Phẩm Mới</h1>
+                <a href="{{ route('admin.products.index') }}" class="text-xs text-slate-400 hover:text-white">← Quay lại danh sách</a>
+            </div>
 
-            <form action="{{ route('admin.products.store') }}" method="POST" enctype="multipart/form-data" class="space-y-4">
+            <form method="POST" action="{{ route('admin.products.store') }}" enctype="multipart/form-data" class="space-y-6">
                 @csrf
 
-                <!-- Tên sản phẩm -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Tên sản phẩm</label>
-                    <input type="text" name="name" required placeholder="Ví dụ: iPhone 16 Pro Max 256GB..." 
-                           value="{{ old('name') }}"
-                           class="w-full bg-slate-950/80 border border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white placeholder-slate-600 px-4 py-2.5 transition outline-none">
-                    @error('name') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
-                </div>
+                <!-- 1. Thông tin chung -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+                    <h2 class="font-bold text-sm text-rose-500 uppercase tracking-wider">1. Thông tin chung</h2>
 
-                <!-- Danh mục & Hãng sản xuất -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Danh mục ngành hàng</label>
-                        <select name="category_id" required class="w-full bg-slate-950/80 border border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white px-4 py-2.5 transition outline-none">
-                            <option value="" class="bg-slate-900 text-slate-400">-- Chọn danh mục --</option>
-                            @foreach($categories as $cat)
-                                <option value="{{ $cat->id }}" {{ old('category_id') == $cat->id ? 'selected' : '' }} class="bg-slate-900 text-white">
-                                    {{ $cat->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('category_id') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Tên sản phẩm *</label>
+                            <input type="text" name="name" value="{{ old('name') }}" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:border-rose-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Slug (để trống sẽ tự tạo)</label>
+                            <input type="text" name="slug" value="{{ old('slug') }}" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:border-rose-500">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Danh mục *</label>
+                            <select name="category_id" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:border-rose-500">
+                                @foreach($categories as $cat)
+                                    <option value="{{ $cat->id }}">{{ $cat->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Thương hiệu *</label>
+                            <select name="brand_id" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:border-rose-500">
+                                @foreach($brands as $b)
+                                    <option value="{{ $b->id }}">{{ $b->name }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Giá mặc định (VNĐ) *</label>
+                            <input type="number" name="price" value="{{ old('price', 0) }}" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:border-rose-500 font-mono">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Tổng tồn kho *</label>
+                            <input type="number" name="stock" value="{{ old('stock', 10) }}" required class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:border-rose-500 font-mono">
+                        </div>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Thương hiệu / Hãng</label>
-                        <select name="brand_id" class="w-full bg-slate-950/80 border border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white px-4 py-2.5 transition outline-none">
-                            <option value="" class="bg-slate-900 text-slate-400">-- Chọn hãng (Brand) --</option>
-                            @foreach($brands as $brand)
-                                <option value="{{ $brand->id }}" {{ old('brand_id') == $brand->id ? 'selected' : '' }} class="bg-slate-900 text-white">
-                                    {{ $brand->name }}
-                                </option>
-                            @endforeach
-                        </select>
-                        @error('brand_id') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
-                    </div>
-                </div>
-
-                <!-- Upload nhiều hình ảnh -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Hình ảnh sản phẩm (có thể chọn nhiều ảnh)</label>
-                    <input type="file" name="images[]" multiple accept="image/*" 
-                           class="w-full bg-slate-950/80 border border-slate-800 text-xs text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-800 file:text-slate-200 hover:file:bg-slate-700 rounded-xl cursor-pointer">
-                    <p class="text-[11px] text-slate-500 mt-1">Hỗ trợ các định dạng: JPEG, PNG, JPG, WEBP, GIF (Tối đa 2MB/ảnh). Ảnh đầu tiên sẽ là ảnh chính.</p>
-                    @error('images') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
-                    @error('images.*') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
-                </div>
-
-                <!-- Giá & Tồn kho -->
-                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Giá bán ($)</label>
-                        <input type="number" step="0.01" name="price" required placeholder="0.00" 
-                               value="{{ old('price') }}"
-                               class="w-full bg-slate-950/80 border border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white placeholder-slate-600 px-4 py-2.5 transition outline-none font-mono">
-                        @error('price') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
+                    <div class="text-xs">
+                        <label class="block font-semibold mb-1 text-slate-300">Mô tả / Tính năng nổi bật</label>
+                        <textarea name="description" rows="3" class="w-full bg-slate-950 border border-slate-800 rounded-xl p-2.5 text-white outline-none focus:border-rose-500">{{ old('description') }}</textarea>
                     </div>
 
-                    <div>
-                        <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Số lượng kho</label>
-                        <input type="number" name="stock" required placeholder="0" 
-                               value="{{ old('stock', 0) }}"
-                               class="w-full bg-slate-950/80 border border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white placeholder-slate-600 px-4 py-2.5 transition outline-none font-mono">
-                        @error('stock') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs pt-2">
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Ảnh đại diện chính</label>
+                            <input type="file" name="image" class="w-full text-slate-400">
+                        </div>
+                        <div>
+                            <label class="block font-semibold mb-1 text-slate-300">Thư viện ảnh phụ (chọn nhiều)</label>
+                            <input type="file" name="images[]" multiple class="w-full text-slate-400">
+                        </div>
                     </div>
                 </div>
 
-                <!-- Mô tả -->
-                <div>
-                    <label class="block text-xs font-semibold text-slate-300 uppercase tracking-wider mb-1.5">Mô tả sản phẩm</label>
-                    <textarea name="description" rows="4" placeholder="Nhập thông số kỹ thuật, bảo hành chính hãng..." 
-                              class="w-full bg-slate-950/80 border border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-xl text-sm text-white placeholder-slate-600 px-4 py-2.5 transition outline-none">{{ old('description') }}</textarea>
-                    @error('description') <p class="mt-1 text-xs text-rose-400">{{ $message }}</p> @enderror
+                <!-- 2. Quản lý Biến thể -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <h2 class="font-bold text-sm text-rose-500 uppercase tracking-wider">2. Biến thể (Phiên bản & Màu sắc)</h2>
+                        <button type="button" @click="addVariant()" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-bold transition">
+                            + Thêm biến thể
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="(v, index) in variants" :key="index">
+                            <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center text-xs">
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">Phiên bản (RAM/SSD)</label>
+                                    <input type="text" :name="`variants[${index}][version_name]`" x-model="v.version_name" placeholder="VD: 8GB 256GB" required class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white outline-none">
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">Màu sắc</label>
+                                    <input type="text" :name="`variants[${index}][color_name]`" x-model="v.color_name" placeholder="VD: Đen, Titan..." required class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white outline-none">
+                                </div>
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">Giá riêng (VNĐ)</label>
+                                    <input type="number" :name="`variants[${index}][price]`" x-model="v.price" required class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white outline-none font-mono">
+                                </div>
+                                <div class="sm:col-span-2">
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">Tồn kho</label>
+                                    <input type="number" :name="`variants[${index}][stock]`" x-model="v.stock" required class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white outline-none font-mono">
+                                </div>
+                                <div class="sm:col-span-1 text-center pt-3">
+                                    <button type="button" @click="removeVariant(index)" class="text-rose-500 hover:text-rose-400 text-sm">🗑️</button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
                 </div>
 
-                <div class="flex justify-end gap-3 pt-4 border-t border-slate-800">
-                    <a href="{{ route('admin.products.index') }}" class="px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold transition">Hủy bỏ</a>
-                    <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white rounded-xl text-xs font-semibold shadow-md transition">Lưu Sản Phẩm</button>
+                <!-- 3. Quản lý Thông số kỹ thuật -->
+                <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-4 shadow-xl">
+                    <div class="flex items-center justify-between">
+                        <h2 class="font-bold text-sm text-rose-500 uppercase tracking-wider">3. Bảng thông số kỹ thuật</h2>
+                        <button type="button" @click="addSpec()" class="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition">
+                            + Thêm dòng thông số
+                        </button>
+                    </div>
+
+                    <div class="space-y-3">
+                        <template x-for="(s, index) in specs" :key="index">
+                            <div class="p-3 bg-slate-950 border border-slate-800 rounded-xl grid grid-cols-1 sm:grid-cols-12 gap-3 items-center text-xs">
+                                <div class="sm:col-span-3">
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">Nhóm thông số</label>
+                                    <select :name="`specifications[${index}][group_name]`" x-model="s.group_name" class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white outline-none">
+                                        <option value="Cấu hình & Bộ nhớ">Cấu hình & Bộ nhớ</option>
+                                        <option value="Màn hình">Màn hình</option>
+                                        <option value="Camera">Camera</option>
+                                        <option value="Pin & Tiện ích">Pin & Tiện ích</option>
+                                        <option value="Cổng giao tiếp & Pin">Cổng giao tiếp & Pin</option>
+                                        <option value="Âm thanh & Tiện ích">Âm thanh & Tiện ích</option>
+                                        <option value="Cấu hình & Đồ họa">Cấu hình & Đồ họa</option>
+                                    </select>
+                                </div>
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">Tên thông số (Key)</label>
+                                    <input type="text" :name="`specifications[${index}][spec_key]`" x-model="s.spec_key" placeholder="VD: Loại CPU, RAM..." required class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white outline-none">
+                                </div>
+                                <div class="sm:col-span-4">
+                                    <label class="block text-[10px] text-slate-400 mb-0.5">Giá trị (Value)</label>
+                                    <input type="text" :name="`specifications[${index}][spec_value]`" x-model="s.spec_value" placeholder="VD: Intel Core Ultra 5..." required class="w-full bg-slate-900 border border-slate-800 rounded-lg p-2 text-white outline-none">
+                                </div>
+                                <div class="sm:col-span-1 text-center pt-3">
+                                    <button type="button" @click="removeSpec(index)" class="text-rose-500 hover:text-rose-400 text-sm">🗑️</button>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <a href="{{ route('admin.products.index') }}" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold">Hủy</a>
+                    <button type="submit" class="px-8 py-2.5 bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-600/30">
+                        Lưu Sản Phẩm
+                    </button>
                 </div>
             </form>
         </div>
     </div>
-</x-admin-layout>
+</x-app-layout>
