@@ -401,37 +401,102 @@
         <!-- ==================== MODAL 2: THÊM ĐỊA CHỈ NHẬN HÀNG ==================== -->
         <div x-show="showAddressModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" style="display: none;">
             <div class="fixed inset-0 bg-black/75 backdrop-blur-sm" @click="showAddressModal = false"></div>
-            <div class="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+            <div class="relative w-full max-w-lg bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5"
+                 x-data="{
+                     citySearch: 'TP. Hồ Chí Minh',
+                     cityOpen: false,
+                     cities: [
+                         'TP. Hồ Chí Minh', 'Hà Nội', 'Đà Nẵng', 'Hải Phòng', 'Cần Thơ', 
+                         'Bình Dương', 'Đồng Nai', 'Bà Rịa - Vũng Tàu', 'Long An', 'Tiền Giang',
+                         'Lâm Đồng', 'Khánh Hòa', 'Thừa Thiên Huế', 'Quảng Nam', 'Quảng Ninh'
+                     ],
+                     get filteredCities() {
+                         if (this.citySearch === '') return this.cities;
+                         return this.cities.filter(c => c.toLowerCase().includes(this.citySearch.toLowerCase()));
+                     },
+
+                     districtSearch: 'Quận 10',
+                     districtOpen: false,
+                     districts: ['Quận 1', 'Quận 3', 'Quận 5', 'Quận 10', 'Quận 11', 'Tân Bình', 'Tân Phú', 'Bình Tân', 'Phú Nhuận', 'Bình Thạnh', 'TP. Thủ Đức', 'Ba Đình', 'Hoàn Kiếm', 'Đống Đa', 'Cầu Giấy', 'Hải Châu', 'Thanh Khê'],
+                     get filteredDistricts() {
+                         if (this.districtSearch === '') return this.districts;
+                         return this.districts.filter(d => d.toLowerCase().includes(this.districtSearch.toLowerCase()));
+                     },
+
+                     wardSearch: 'Phường 13',
+                     wardOpen: false,
+                     wards: ['Phường 1', 'Phường 2', 'Phường 3', 'Phường 4', 'Phường 5', 'Phường 10', 'Phường 13', 'Phường 14', 'Phường 15', 'Phường Bến Thành', 'Phường Tân Sơn Nhì'],
+                     get filteredWards() {
+                         if (this.wardSearch === '') return this.wards;
+                         return this.wards.filter(w => w.toLowerCase().includes(this.wardSearch.toLowerCase()));
+                     }
+                 }">
+                
                 <div class="flex items-center justify-between pb-3 border-b border-slate-800">
-                    <h3 class="font-bold text-base text-white">Thêm địa chỉ</h3>
+                    <h3 class="font-bold text-base text-white">Thêm địa chỉ nhận hàng</h3>
                     <button @click="showAddressModal = false" class="text-slate-400 hover:text-white text-lg">✕</button>
                 </div>
 
                 <form method="POST" action="{{ route('user.addresses.store') }}" class="space-y-4 text-xs">
                     @csrf
 
-                    <div>
-                        <label class="block font-semibold text-slate-300 mb-1.5">Tỉnh/Thành phố</label>
-                        <input type="text" name="city" required placeholder="Ví dụ: TP. Hồ Chí Minh..." 
-                               class="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl text-white px-4 py-2.5 outline-none">
+                    <!-- TỈNH / THÀNH PHỐ AUTOCOMPLETE -->
+                    <div class="relative" @click.away="cityOpen = false">
+                        <label class="block font-semibold text-slate-300 mb-1.5">Tỉnh / Thành phố</label>
+                        <input type="text" name="city" x-model="citySearch" @focus="cityOpen = true" @input="cityOpen = true" required placeholder="Gõ để tìm kiếm..." 
+                               class="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl text-white px-4 py-2.5 outline-none font-medium">
+                        
+                        <div x-show="cityOpen && filteredCities.length > 0" style="display: none;" 
+                             class="absolute z-50 left-0 right-0 mt-1 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-900">
+                            <template x-for="c in filteredCities" :key="c">
+                                <div @click="citySearch = c; cityOpen = false" 
+                                     class="px-4 py-2.5 text-slate-300 hover:bg-rose-500/20 hover:text-white cursor-pointer transition flex items-center justify-between">
+                                    <span x-text="c"></span>
+                                    <span class="text-rose-400 text-[10px]" x-show="citySearch === c">✓</span>
+                                </div>
+                            </template>
+                        </div>
                     </div>
 
                     <div class="grid grid-cols-2 gap-3">
-                        <div>
-                            <label class="block font-semibold text-slate-300 mb-1.5">Quận/Huyện</label>
-                            <input type="text" name="district" required placeholder="Ví dụ: Quận 10, Tân Phú..." 
-                                   class="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl text-white px-4 py-2.5 outline-none">
+                        <!-- QUẬN / HUYỆN AUTOCOMPLETE -->
+                        <div class="relative" @click.away="districtOpen = false">
+                            <label class="block font-semibold text-slate-300 mb-1.5">Quận / Huyện</label>
+                            <input type="text" name="district" x-model="districtSearch" @focus="districtOpen = true" @input="districtOpen = true" required placeholder="Gõ quận..." 
+                                   class="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl text-white px-4 py-2.5 outline-none font-medium">
+                            
+                            <div x-show="districtOpen && filteredDistricts.length > 0" style="display: none;" 
+                                 class="absolute z-50 left-0 right-0 mt-1 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-900">
+                                <template x-for="d in filteredDistricts" :key="d">
+                                    <div @click="districtSearch = d; districtOpen = false" 
+                                         class="px-4 py-2.5 text-slate-300 hover:bg-rose-500/20 hover:text-white cursor-pointer transition">
+                                        <span x-text="d"></span>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
-                        <div>
-                            <label class="block font-semibold text-slate-300 mb-1.5">Phường/Xã</label>
-                            <input type="text" name="ward" required placeholder="Ví dụ: Phường 14..." 
-                                   class="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl text-white px-4 py-2.5 outline-none">
+
+                        <!-- PHƯỜNG / XÃ AUTOCOMPLETE -->
+                        <div class="relative" @click.away="wardOpen = false">
+                            <label class="block font-semibold text-slate-300 mb-1.5">Phường / Xã</label>
+                            <input type="text" name="ward" x-model="wardSearch" @focus="wardOpen = true" @input="wardOpen = true" required placeholder="Gõ phường..." 
+                                   class="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl text-white px-4 py-2.5 outline-none font-medium">
+                            
+                            <div x-show="wardOpen && filteredWards.length > 0" style="display: none;" 
+                                 class="absolute z-50 left-0 right-0 mt-1 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl max-h-48 overflow-y-auto divide-y divide-slate-900">
+                                <template x-for="w in filteredWards" :key="w">
+                                    <div @click="wardSearch = w; wardOpen = false" 
+                                         class="px-4 py-2.5 text-slate-300 hover:bg-rose-500/20 hover:text-white cursor-pointer transition">
+                                        <span x-text="w"></span>
+                                    </div>
+                                </template>
+                            </div>
                         </div>
                     </div>
 
                     <div>
-                        <label class="block font-semibold text-slate-300 mb-1.5">Địa chỉ nhà (Số nhà, tên đường)</label>
-                        <input type="text" name="address_detail" required placeholder="Ví dụ: 828 Sư Vạn Hạnh, P.13..." 
+                        <label class="block font-semibold text-slate-300 mb-1.5">Địa chỉ cụ thể (Số nhà, tên đường)</label>
+                        <input type="text" name="address_detail" required placeholder="Ví dụ: 828 Sư Vạn Hạnh..." 
                                class="w-full bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl text-white px-4 py-2.5 outline-none">
                     </div>
 

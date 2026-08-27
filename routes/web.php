@@ -18,13 +18,12 @@ Route::get('/', [ShopController::class, 'index'])->name('home');
 Route::get('/category/{slug}', [ShopController::class, 'category'])->name('shop.category');
 Route::get('/product/{slug}', [ShopController::class, 'product'])->name('shop.product');
 
-// 2. Giỏ hàng lưu Redis qua AJAX / Alpine.js
-Route::prefix('cart')->name('cart.')->group(function () {
-    Route::get('/', [CartController::class, 'index'])->name('index');
-    Route::post('/add', [CartController::class, 'add'])->name('add');
-    Route::post('/update', [CartController::class, 'update'])->name('update');
-    Route::post('/remove', [CartController::class, 'remove'])->name('remove');
-});
+// Giỏ hàng
+Route::get('/cart', [CartController::class, 'index'])->name('cart.index');
+Route::post('/cart/add/{product}', [CartController::class, 'add'])->name('cart.add');
+Route::patch('/cart/update/{key}', [CartController::class, 'update'])->name('cart.update');
+Route::delete('/cart/remove/{key}', [CartController::class, 'remove'])->name('cart.remove');
+Route::delete('/cart/clear', [CartController::class, 'clear'])->name('cart.clear');
 
 // 3. Điều hướng Dashboard theo Role
 Route::get('/dashboard', function (Request $request) {

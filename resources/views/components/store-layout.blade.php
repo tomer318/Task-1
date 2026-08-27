@@ -15,11 +15,11 @@
     <style>body { font-family: 'Instrument Sans', sans-serif; }</style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-rose-500 selection:text-white"
-      x-data="cartComponent()">
+      x-data="{ openCart: false }">
 
     <!-- Top Promo Bar -->
     <div class="bg-gradient-to-r from-rose-700 via-rose-600 to-orange-600 text-white text-xs font-semibold py-1.5 px-4 text-center">
-        ⚡ TECHZONE DEAL: Miễn phí vận chuyển toàn quốc cho đơn hàng công nghệ từ $200!
+        ⚡ TECHZONE DEAL: Miễn phí vận chuyển toàn quốc cho đơn hàng công nghệ từ 300.000₫!
     </div>
 
     <!-- Header / Navbar -->
@@ -41,13 +41,17 @@
             <div class="flex items-center gap-4 text-xs font-semibold">
                 
                 <!-- Nút Giỏ Hàng Mở Drawer -->
-                <button @click="openCart = true" class="relative flex items-center gap-2 px-3.5 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition">
+                <a href="{{ route('cart.index') }}" class="relative flex items-center gap-2 px-3.5 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition">
                     <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
                     </svg>
-                    <span class="text-white font-mono" x-text="cart.formatted_total || '$0.00'"></span>
-                    <span class="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-bold rounded-full" x-text="cart.total_quantity || 0"></span>
-                </button>
+                    <span class="text-white font-mono">
+                        {{ number_format(array_sum(array_map(fn($i) => $i['price'] * $i['quantity'], session('cart', []))), 0, ',', '.') }}₫
+                    </span>
+                    <span class="px-1.5 py-0.5 bg-rose-600 text-white text-[10px] font-bold rounded-full">
+                        {{ array_sum(array_column(session('cart', []), 'quantity')) }}
+                    </span>
+                </a>
 
                 @auth
                     @role('Admin')
@@ -83,152 +87,7 @@
 
     <!-- Footer -->
     <footer class="bg-slate-950 border-t border-slate-900 py-8 text-center text-xs text-slate-500">
-        TECHZONE E-Commerce Storefront © 2026 • Redis Caching & AJAX Cart
+        TECHZONE E-Commerce Storefront © 2026 • Session Cart & Laravel
     </footer>
-
-    <!-- Slide-over Drawer Giỏ Hàng (Alpine.js) -->
-    <div x-show="openCart" class="fixed inset-0 z-50 overflow-hidden" style="display: none;">
-        <div class="absolute inset-0 bg-black/60 backdrop-blur-sm transition-opacity" @click="openCart = false"></div>
-        <div class="fixed inset-y-0 right-0 max-w-full flex pl-10">
-            <div class="w-screen max-w-md bg-slate-900 border-l border-slate-800 p-6 flex flex-col justify-between shadow-2xl">
-                <div>
-                    <div class="flex items-center justify-between pb-4 border-b border-slate-800">
-                        <h2 class="text-base font-bold text-white flex items-center gap-2">
-                            🛒 Giỏ Hàng Của Bạn <span class="text-xs text-rose-400 font-mono" x-text="'(' + (cart.total_quantity || 0) + ' món)'"></span>
-                        </h2>
-                        <button @click="openCart = false" class="text-slate-400 hover:text-white text-sm">✕</button>
-                    </div>
-
-                    <!-- Danh sách món đồ trong Redis -->
-                    <div class="divide-y divide-slate-800 overflow-y-auto max-h-[60vh] mt-4 space-y-3">
-                        <template x-if="cart.items && cart.items.length === 0">
-                            <div class="py-12 text-center text-slate-500 text-xs">
-                                Giỏ hàng hiện đang trống!
-                            </div>
-                        </template>
-
-                        <template x-for="item in cart.items" :key="item.id">
-                            <div class="py-3 flex items-center justify-between gap-3">
-                                <div class="flex items-center gap-3">
-                                    <div class="w-12 h-12 rounded-lg bg-slate-950 border border-slate-800 flex items-center justify-center overflow-hidden shrink-0">
-                                        <template x-if="item.image">
-                                            <img :src="item.image" class="w-full h-full object-cover">
-                                        </template>
-                                        <template x-if="!item.image">
-                                            <span class="text-slate-600 text-xs">📦</span>
-                                        </template>
-                                    </div>
-                                    <div>
-                                        <div class="text-xs font-semibold text-white line-clamp-1" x-text="item.name"></div>
-                                        <div class="text-xs text-rose-400 font-mono font-bold" x-text="'$' + item.price"></div>
-                                    </div>
-                                </div>
-
-                                <!-- Tăng giảm số lượng AJAX -->
-                                <div class="flex items-center gap-2">
-                                    <button @click="updateQuantity(item.id, item.quantity - 1)" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">-</button>
-                                    <span class="text-xs font-mono text-white font-bold" x-text="item.quantity"></span>
-                                    <button @click="updateQuantity(item.id, item.quantity + 1)" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs">+</button>
-                                    <button @click="removeItem(item.id)" class="text-rose-400 hover:text-rose-300 text-xs ml-1">🗑️</button>
-                                </div>
-                            </div>
-                        </template>
-                    </div>
-                </div>
-
-                <!-- Tổng tiền & Checkout -->
-                <div class="border-t border-slate-800 pt-4 space-y-3">
-                    <div class="flex justify-between items-center text-sm">
-                        <span class="text-slate-400">Tổng thanh toán:</span>
-                        <span class="text-lg font-extrabold text-rose-500 font-mono" x-text="cart.formatted_total || '$0.00'"></span>
-                    </div>
-                    <button class="w-full py-3 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white text-xs font-bold uppercase tracking-wider rounded-xl shadow-lg transition">
-                        Tiến Hành Đặt Hàng →
-                    </button>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Script Xử lý AJAX Cart lưu Redis -->
-    <script>
-        function cartComponent() {
-            return {
-                openCart: false,
-                cart: { items: [], total_quantity: 0, total_price: 0, formatted_total: '$0.00' },
-
-                init() {
-                    this.fetchCart();
-                },
-
-                async fetchCart() {
-                    try {
-                        const res = await fetch('{{ route('cart.index') }}');
-                        this.cart = await res.json();
-                    } catch (e) {
-                        console.error("Lỗi lấy giỏ hàng:", e);
-                    }
-                },
-
-                async addToCart(productId, quantity = 1) {
-                    try {
-                        const res = await fetch('{{ route('cart.add') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({ product_id: productId, quantity: quantity })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.cart = data.cart;
-                            this.openCart = true;
-                        }
-                    } catch (e) {
-                        alert("Không thể thêm vào giỏ hàng");
-                    }
-                },
-
-                async updateQuantity(productId, quantity) {
-                    try {
-                        const res = await fetch('{{ route('cart.update') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({ product_id: productId, quantity: quantity })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.cart = data.cart;
-                        }
-                    } catch (e) {
-                        console.error(e);
-                    }
-                },
-
-                async removeItem(productId) {
-                    try {
-                        const res = await fetch('{{ route('cart.remove') }}', {
-                            method: 'POST',
-                            headers: {
-                                'Content-Type': 'application/json',
-                                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
-                            },
-                            body: JSON.stringify({ product_id: productId })
-                        });
-                        const data = await res.json();
-                        if (data.success) {
-                            this.cart = data.cart;
-                        }
-                    } catch (e) {
-                        console.error(e);
-                    }
-                }
-            }
-        }
-    </script>
 </body>
 </html>

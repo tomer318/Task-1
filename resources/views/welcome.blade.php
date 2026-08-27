@@ -67,12 +67,13 @@
                             <h3 class="font-semibold text-xs text-white line-clamp-2 group-hover:text-rose-400 transition">{{ $p->name }}</h3>
                         </a>
 
-                        <div class="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between">
-                            <span class="text-sm font-extrabold text-rose-500 font-mono">${{ number_format($p->price, 2) }}</span>
-                            <button @click="addToCart({{ $p->id }})" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow">
+                        <form method="POST" action="{{ route('cart.add', $p) }}">
+                            @csrf
+                            <input type="hidden" name="quantity" value="1">
+                            <button type="submit" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1">
                                 <span>+ Thêm</span>
                             </button>
-                        </div>
+                        </form>
                     </div>
                 @endforeach
             </div>
@@ -106,10 +107,15 @@
                         </a>
 
                         <div class="pt-3 mt-3 border-t border-slate-800/80 flex items-center justify-between">
-                            <span class="text-sm font-extrabold text-rose-500 font-mono">${{ number_format($p->price, 2) }}</span>
-                            <button @click="addToCart({{ $p->id }})" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1.5 shadow">
-                                <span>+ Thêm</span>
-                            </button>
+                            <span class="text-sm font-extrabold text-rose-500 font-mono">{{ number_format($p->price, 0, ',', '.') }}₫</span>
+                            
+                            <form method="POST" action="{{ route('cart.add', $p) }}">
+                                @csrf
+                                <input type="hidden" name="quantity" value="1">
+                                <button type="submit" class="px-3 py-1.5 bg-slate-800 hover:bg-rose-600 text-white text-xs font-semibold rounded-xl transition flex items-center gap-1">
+                                    <span>+ Thêm</span>
+                                </button>
+                            </form>
                         </div>
                     </div>
                 @endforeach

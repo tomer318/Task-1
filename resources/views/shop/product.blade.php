@@ -255,6 +255,8 @@
                         <form method="POST" action="{{ route('cart.add', $product) }}" class="w-full">
                             @csrf
                             <input type="hidden" name="quantity" value="1">
+                            <input type="hidden" name="version" :value="selectedVersion">
+                            <input type="hidden" name="color" :value="selectedColor">
                             <button type="submit" class="w-full h-full py-3 bg-slate-900 hover:bg-slate-800 border border-rose-500/40 text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
                                 <span>🛒</span> Thêm giỏ hàng
                             </button>

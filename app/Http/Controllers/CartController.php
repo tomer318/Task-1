@@ -2,70 +2,89 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\CartService;
+use App\Models\Product;
 use Illuminate\Http\Request;
 
 class CartController extends Controller
 {
-    protected $cartService;
-
-    public function __construct(CartService $cartService)
-    {
-        $this->cartService = $cartService;
-    }
-
     public function index()
     {
-        return response()->json($this->cartService->getCartSummary());
+        return view('cart.index');
     }
 
-    public function add(Request $request)
+    public function add(Request $request, Product $product)
     {
-        $request->validate([
-            'product_id' => 'required|exists:products,id',
-            'quantity' => 'nullable|integer|min:1'
-        ]);
+        $quantity = (int)($request->input('quantity', 1));
+        $version = $request->input('version');
+        $color = $request->input('color');
 
-        $summary = $this->cartService->add(
-            (int)$request->product_id, 
-            (int)($request->quantity ?? 1)
-        );
+        if (!$version || !$color) {
+            $defaultVariant = $product->variants()->first();
+            $version = $defaultVariant ? $defaultVariant->version_name : 'Tiêu Chuẩn';
+            $color = $defaultVariant ? $defaultVariant->color_name : 'Đen';
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Đã thêm sản phẩm vào giỏ hàng!',
-            'cart' => $summary
-        ]);
+        $variant = $product->variants()
+            ->where('version_name', $version)
+            ->where('color_name', $color)
+            ->first();
+
+        $price = $variant ? $variant->price : $product->price;
+
+        $cart = session()->get('cart', []);
+        $cartKey = $product->id . '_' . md5($version . '_' . $color);
+
+        if (isset($cart[$cartKey])) {
+            $cart[$cartKey]['quantity'] += $quantity;
+        } else {
+            $cart[$cartKey] = [
+                'product_id' => $product->id,
+                'name' => $product->name,
+                'price' => $price,
+                'image' => $product->image,
+                'quantity' => $quantity,
+                'version' => $version,
+                'color' => $color,
+            ];
+        }
+
+        session()->put('cart', $cart);
+
+        return redirect()->route('cart.index');
     }
 
-    public function update(Request $request)
+    public function update(Request $request, string $key)
     {
-        $request->validate([
-            'product_id' => 'required|integer',
-            'quantity' => 'required|integer|min:0'
-        ]);
+        $quantity = (int)$request->input('quantity', 1);
+        $cart = session()->get('cart', []);
 
-        $summary = $this->cartService->update(
-            (int)$request->product_id, 
-            (int)$request->quantity
-        );
+        if (isset($cart[$key])) {
+            if ($quantity > 0) {
+                $cart[$key]['quantity'] = $quantity;
+            } else {
+                unset($cart[$key]);
+            }
+            session()->put('cart', $cart);
+        }
 
-        return response()->json([
-            'success' => true,
-            'cart' => $summary
-        ]);
+        return redirect()->route('cart.index');
     }
 
-    public function remove(Request $request)
+    public function remove(string $key)
     {
-        $request->validate(['product_id' => 'required|integer']);
+        $cart = session()->get('cart', []);
 
-        $summary = $this->cartService->remove((int)$request->product_id);
+        if (isset($cart[$key])) {
+            unset($cart[$key]);
+            session()->put('cart', $cart);
+        }
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Đã xóa sản phẩm khỏi giỏ!',
-            'cart' => $summary
-        ]);
+        return redirect()->route('cart.index');
+    }
+
+    public function clear()
+    {
+        session()->forget('cart');
+        return redirect()->route('cart.index');
     }
 }
