@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderItem;
+use App\Models\Coupon;
+use App\Services\NotificationService;
 use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
@@ -24,9 +26,6 @@ class CheckoutController extends Controller
 
     public function process(Request $request)
     {
-        // Debug nếu cần thiết
-        // dd($request->all());
-
         $request->validate([
             'customer_name' => 'required|string|max:255',
             'customer_phone' => 'required|string|max:20',
@@ -38,7 +37,6 @@ class CheckoutController extends Controller
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống!');
         }
 
-        // Xử lý lấy địa chỉ nhận hàng
         $shippingAddress = $request->shipping_address;
         if ($request->has('selected_address_id') && !empty($request->selected_address_id)) {
             $addressObj = \App\Models\UserAddress::find($request->selected_address_id);
@@ -48,7 +46,7 @@ class CheckoutController extends Controller
         }
 
         if (empty($shippingAddress)) {
-            $shippingAddress = '123 Đường Số 7, Quận Bình Tân, TP.HCM'; // Mặc định phòng hờ
+            $shippingAddress = '102/1c Lê Tấn Bế, Phường An Lạc, Quận Bình Tân, TP.HCM';
         }
 
         DB::beginTransaction();
@@ -58,10 +56,17 @@ class CheckoutController extends Controller
                 $subtotal += $item['price'] * $item['quantity'];
             }
 
-            $coupon = session('coupon');
+            $couponSession = session('coupon');
             $discountAmount = 0;
-            if ($coupon) {
-                $discountAmount = ($coupon['type'] === 'percent') ? ($subtotal * $coupon['value']) / 100 : $coupon['value'];
+            $couponModel = null;
+
+            if ($couponSession) {
+                $couponModel = Coupon::where('code', $couponSession['code'])->first();
+                if ($couponModel) {
+                    $discountAmount = ($couponModel->type === 'percent') 
+                        ? ($subtotal * $couponModel->value) / 100 
+                        : $couponModel->value;
+                }
             }
 
             $shippingSpeed = $request->input('shipping_speed', 'normal');
@@ -96,6 +101,19 @@ class CheckoutController extends Controller
                     'total' => $item['price'] * $item['quantity'],
                 ]);
             }
+
+            if ($couponModel) {
+                $couponModel->increment('used_count');
+            }
+
+            // Gửi thông báo đặt hàng thành công
+            NotificationService::send(
+                $order->user_id,
+                'order',
+                'Đặt hàng thành công #' . $order->order_code,
+                'Đơn hàng #' . $order->order_code . ' trị giá ' . number_format($order->total_price, 0, ',', '.') . '₫ của bạn đã được tiếp nhận.',
+                route('profile.orders')
+            );
 
             DB::commit();
 

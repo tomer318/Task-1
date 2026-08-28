@@ -292,30 +292,106 @@
         @endif
 
         <!-- ==================== ĐÁNH GIÁ & NHẬN XÉT ==================== -->
-        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6">
-            <h2 class="font-bold text-base text-white pb-3 border-b border-slate-800">
-                Đánh giá {{ $product->name }}
+        @php
+            $reviews = $product->reviews()->with('user')->latest()->get();
+            $avgRating = $reviews->count() > 0 ? round($reviews->avg('rating'), 1) : 5.0;
+        @endphp
+
+        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-6"
+             x-data="{ previewMedia: null, mediaType: 'image' }">
+            <h2 class="font-bold text-base text-white pb-3 border-b border-slate-800 flex items-center justify-between">
+                <span>Đánh giá & Nhận xét {{ $product->name }}</span>
+                <span class="text-xs text-rose-400 font-mono">{{ $reviews->count() }} lượt đánh giá</span>
             </h2>
 
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+            <!-- Thống kê điểm sao -->
+            <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center p-4 bg-slate-950 rounded-2xl border border-slate-800">
                 <div class="md:col-span-4 text-center md:border-r border-slate-800 pr-4 space-y-2">
-                    <div class="text-4xl font-black text-rose-500">5.0<span class="text-base text-slate-500 font-normal">/5</span></div>
-                    <div class="text-amber-400 text-sm">★★★★★</div>
-                    <div class="text-xs text-slate-400">4 lượt đánh giá từ khách hàng</div>
+                    <div class="text-4xl font-black text-rose-500">{{ number_format($avgRating, 1) }}<span class="text-base text-slate-500 font-normal">/5</span></div>
+                    <div class="text-amber-400 text-sm">
+                        @for($i = 1; $i <= 5; $i++)
+                            <span>{{ $i <= round($avgRating) ? '★' : '☆' }}</span>
+                        @endfor
+                    </div>
+                    <div class="text-xs text-slate-400">{{ $reviews->count() }} lượt đánh giá từ khách hàng</div>
                 </div>
                 <div class="md:col-span-8 space-y-2 text-xs">
                     <div class="flex items-center justify-between">
-                        <span class="text-slate-400">Hiệu năng</span>
+                        <span class="text-slate-400">Chất lượng sản phẩm</span>
+                        <span class="text-amber-400">★★★★★ 5/5</span>
+                    </div>
+                    <div class="flex items-center justify-between">
+                        <span class="text-slate-400">Đúng với mô tả</span>
                         <span class="text-amber-400">★★★★★ 5/5</span>
                     </div>
                     <div class="flex items-center justify-between">
                         <span class="text-slate-400">Thời lượng pin / Độ bền</span>
                         <span class="text-amber-400">★★★★★ 5/5</span>
                     </div>
-                    <div class="flex items-center justify-between">
-                        <span class="text-slate-400">Màn hình / Thiết kế</span>
-                        <span class="text-amber-400">★★★★★ 5/5</span>
+                </div>
+            </div>
+
+            <!-- Danh sách các lượt đánh giá từ khách hàng -->
+            <div class="space-y-4">
+                @forelse($reviews as $rev)
+                    <div class="p-4 bg-slate-950 border border-slate-800/80 rounded-2xl space-y-3">
+                        <div class="flex items-center justify-between text-xs">
+                            <div class="flex items-center gap-2.5">
+                                <div class="w-8 h-8 rounded-full bg-rose-600/20 text-rose-400 font-bold flex items-center justify-center">
+                                    {{ strtoupper(substr($rev->user->name ?? 'K', 0, 1)) }}
+                                </div>
+                                <div>
+                                    <span class="font-bold text-white block">{{ $rev->user->name ?? 'Khách hàng' }}</span>
+                                    <span class="text-slate-500 text-[10px]">{{ $rev->created_at->format('d/m/Y H:i') }}</span>
+                                </div>
+                            </div>
+                            <div class="text-amber-400 text-xs">
+                                @for($i = 1; $i <= 5; $i++)
+                                    <span>{{ $i <= $rev->rating ? '★' : '☆' }}</span>
+                                @endfor
+                            </div>
+                        </div>
+
+                        <!-- Nội dung nhận xét -->
+                        <p class="text-xs text-slate-300 leading-relaxed">{{ $rev->comment }}</p>
+
+                        <!-- Hình ảnh & Video đính kèm phóng to được -->
+                        @if((is_array($rev->images) && count($rev->images) > 0) || $rev->video_path)
+                            <div class="flex flex-wrap items-center gap-2 pt-1">
+                                @if(is_array($rev->images))
+                                    @foreach($rev->images as $img)
+                                        <img src="{{ asset('storage/' . $img) }}" 
+                                             @click="previewMedia = '{{ asset('storage/' . $img) }}'; mediaType = 'image'"
+                                             class="w-16 h-16 object-cover rounded-xl border border-slate-800 hover:border-rose-500 cursor-pointer transition">
+                                    @endforeach
+                                @endif
+
+                                @if($rev->video_path)
+                                    <div @click="previewMedia = '{{ asset('storage/' . $rev->video_path) }}'; mediaType = 'video'"
+                                         class="w-16 h-16 bg-slate-900 border border-slate-800 hover:border-rose-500 rounded-xl flex flex-col items-center justify-center cursor-pointer transition relative">
+                                        <span class="text-xl">▶️</span>
+                                        <span class="text-[9px] text-slate-400 font-semibold">Video</span>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
                     </div>
+                @empty
+                    <div class="py-8 text-center text-xs text-slate-500">Chưa có đánh giá nào cho sản phẩm này. Hãy mua hàng và để lại đánh giá đầu tiên nhé!</div>
+                @endforelse
+            </div>
+
+            <!-- Modal Phóng To Media (Ảnh / Video) -->
+            <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" x-show="previewMedia" style="display: none;">
+                <div class="relative max-w-2xl max-h-[85vh] flex flex-col items-center justify-center" @click.away="previewMedia = null">
+                    <button @click="previewMedia = null" class="absolute -top-10 right-0 text-white font-bold text-2xl">&times;</button>
+                    
+                    <template x-if="mediaType === 'image'">
+                        <img :src="previewMedia" class="max-h-[80vh] rounded-2xl object-contain border border-slate-800">
+                    </template>
+                    <template x-if="mediaType === 'video'">
+                        <video :src="previewMedia" controls autoplay class="max-h-[80vh] rounded-2xl border border-slate-800"></video>
+                    </template>
                 </div>
             </div>
         </div>

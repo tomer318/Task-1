@@ -35,4 +35,20 @@ class Order extends Model
     {
         return $this->hasMany(OrderItem::class);
     }
+
+    public function review() {
+        return $this->hasOne(OrderReview::class);
+    }
+
+    public function productReviews() {
+        return $this->hasMany(ProductReview::class);
+    }
+
+    public function cancellation() {
+        return $this->hasOne(\App\Models\OrderCancellation::class);
+    }
+
+    public function returnRequest() {
+        return $this->hasOne(\App\Models\ReturnRequest::class);
+    }
 }

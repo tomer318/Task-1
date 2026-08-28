@@ -35,4 +35,9 @@ class Product extends Model
     {
         return $this->hasMany(ProductSpecification::class);
     }
+    
+    public function reviews() 
+    {
+        return $this->hasMany(ProductReview::class)->where('is_active', true);
+    }
 }

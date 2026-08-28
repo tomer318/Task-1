@@ -75,19 +75,37 @@
 
                 <!-- Đơn hàng -->
                 <a href="{{ route('admin.orders.index') }}" 
-                class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.orders.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.orders.index', 'admin.orders.show') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
                     <div class="flex items-center gap-3">
-                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
+                        <svg class="w-4 h-4 {{ request()->routeIs('admin.orders.index', 'admin.orders.show') ? 'text-white' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/></svg>
                         Đơn Hàng
                     </div>
                     @php
                         $pendingBadgeCount = \App\Models\Order::where('status', 'Chờ xử lý')->count();
                     @endphp
                     @if($pendingBadgeCount > 0)
-                        <span class="text-[9px] px-1.5 py-0.5 rounded {{ request()->routeIs('admin.orders.*') ? 'bg-white/20 text-white' : 'bg-rose-950/60 text-rose-400 border border-rose-800/40' }}">
+                        <span class="text-[9px] px-1.5 py-0.5 rounded {{ request()->routeIs('admin.orders.index', 'admin.orders.show') ? 'bg-white/20 text-white' : 'bg-rose-950/60 text-rose-400 border border-rose-800/40' }}">
                             Mới ({{ $pendingBadgeCount }})
                         </span>
                     @endif
+                </a>
+
+                <!-- Thống kê Đơn Hủy -->
+                <a href="{{ route('admin.orders.cancelled') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.orders.cancelled') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 {{ request()->routeIs('admin.orders.cancelled') ? 'text-white' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Đơn Hàng Đã Hủy
+                    </div>
+                </a>
+
+                <!-- Quản Lý Đổi / Trả Hàng -->
+                <a href="{{ route('admin.returns.index') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.returns.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+                        Quản Lý Đổi / Trả
+                    </div>
                 </a>
 
                 <!-- Mã giảm giá -->
@@ -96,6 +114,24 @@
                     <div class="flex items-center gap-3">
                         <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg>
                         Mã Giảm Giá
+                    </div>
+                </a>
+
+                <!-- Quản Lý Đánh Giá Sản Phẩm -->
+                <a href="{{ route('admin.reviews.index') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.reviews.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z"/></svg>
+                        Đánh Giá Sản Phẩm
+                    </div>
+                </a>
+
+                <!-- Độ Hài Lòng Đơn Hàng -->
+                <a href="{{ route('admin.order.satisfaction') }}"
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.order.satisfaction') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14.828 14.828a4 4 0 01-5.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+                        Độ Hài Lòng Đơn
                     </div>
                 </a>
 

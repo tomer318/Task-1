@@ -43,4 +43,24 @@ class User extends Authenticatable
     {
         return $this->hasMany(UserAddress::class);
     }
+
+    public function productReviews()
+    {
+        return $this->hasMany(\App\Models\ProductReview::class);
+    }
+
+    public function orderReviews()
+    {
+        return $this->hasMany(\App\Models\OrderReview::class);
+    }
+    
+    public function notifications()
+    {
+        return $this->hasMany(\App\Models\Notification::class)->latest();
+    }
+
+    public function unreadNotificationsCount()
+    {
+        return $this->notifications()->where('is_read', false)->count();
+    }
 }
