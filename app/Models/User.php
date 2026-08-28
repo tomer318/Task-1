@@ -63,4 +63,14 @@ class User extends Authenticatable
     {
         return $this->notifications()->where('is_read', false)->count();
     }
+
+    public function wishlists()
+    {
+        return $this->hasMany(\App\Models\Wishlist::class);
+    }
+
+    public function wishlistProducts()
+    {
+        return $this->belongsToMany(\App\Models\Product::class, 'wishlists');
+    }
 }

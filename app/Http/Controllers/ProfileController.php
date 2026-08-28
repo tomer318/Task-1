@@ -21,26 +21,28 @@ class ProfileController extends Controller
         $user = $request->user();
         $addresses = method_exists($user, 'addresses') ? $user->addresses : collect([]);
         
-        // 1. Toàn bộ đơn để tính tổng tiền & thống kê
         $allOrders = Order::with(['returnRequest'])
             ->where('user_id', $user->id)
             ->latest()
             ->get();
         $ordersCount = $allOrders->count();
 
-        // Chỉ tính tiền tích lũy cho các đơn Đã giao VÀ chưa bị hoàn tiền / đổi trả thành công
         $totalSpent = $allOrders->filter(function ($order) {
             $isReturned = $order->returnRequest && in_array($order->returnRequest->status, ['Đã hoàn tiền', 'Đã đổi/trả']);
             return in_array($order->status, ['Đã giao', 'Đã nhận hàng']) && !$isReturned;
         })->sum('total_price');
 
-        // 2. Phân trang riêng cho Lịch sử mua hàng (5 đơn / trang)
         $recentOrders = Order::with(['items', 'review', 'productReviews.product', 'cancellation', 'returnRequest'])
             ->where('user_id', $user->id)
             ->latest()
             ->paginate(5, ['*'], 'orders_page');
 
-        // 3. Phân trang Đánh giá sản phẩm & Đánh giá đơn hàng (5 mục / trang)
+        // Danh sách sản phẩm yêu thích (lấy kèm theo danh mục và thương hiệu)
+        $myWishlists = \App\Models\Wishlist::with(['product.category', 'product.brand'])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->paginate(8, ['*'], 'wishlist_page');
+
         $myProductReviews = ProductReview::with(['product', 'order'])
             ->where('user_id', $user->id)
             ->latest()
@@ -51,21 +53,24 @@ class ProfileController extends Controller
             ->latest()
             ->paginate(5, ['*'], 'order_reviews_page');
 
-        // 4. Phân trang Yêu cầu Đổi / Trả (5 yêu cầu / trang)
         $myReturnRequests = ReturnRequest::with(['order.items'])
             ->where('user_id', $user->id)
             ->latest()
             ->paginate(5, ['*'], 'returns_page');
 
-        // 5. Phân trang Thông báo (6 thông báo / trang)
         $myNotifications = $user->notifications()
             ->latest()
             ->paginate(6, ['*'], 'notifications_page');
 
         return compact(
             'user', 'addresses', 'recentOrders', 'ordersCount', 'totalSpent', 
-            'activeTab', 'myProductReviews', 'myOrderReviews', 'myReturnRequests', 'myNotifications'
+            'activeTab', 'myWishlists', 'myProductReviews', 'myOrderReviews', 'myReturnRequests', 'myNotifications'
         );
+    }
+
+    public function wishlist(Request $request): View
+    {
+        return view('shop.member-profile', $this->getProfileData($request, 'my-wishlist'));
     }
 
     public function edit(Request $request): View

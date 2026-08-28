@@ -3,13 +3,14 @@
 namespace App\Http\Controllers;
 
 use App\Models\Notification;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
     public function index(Request $request)
     {
-        $notifications = \App\Models\Notification::where('user_id', auth()->id())
+        $notifications = Notification::where('user_id', Auth::id())
             ->latest()
             ->paginate(6); // Phân trang mỗi trang 6 thông báo
 

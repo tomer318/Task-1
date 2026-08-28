@@ -79,6 +79,12 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/notifications', [ProfileController::class, 'notifications'])->name('profile.notifications');
     Route::patch('/notifications/{notification}/read', [NotificationController::class, 'markAsRead'])->name('notifications.read');
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
+
+    // Wishlist Routes
+    Route::get('/wishlist', [\App\Http\Controllers\WishlistController::class, 'index'])->name('wishlist.index');
+    Route::get('/profile/wishlist', [ProfileController::class, 'wishlist'])->name('profile.wishlist');
+    Route::post('/wishlist/toggle/{product}', [\App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlist.toggle');
+    Route::delete('/wishlist/{product}', [\App\Http\Controllers\WishlistController::class, 'destroy'])->name('wishlist.destroy');
 });
 
 // 6. Quản trị Admin

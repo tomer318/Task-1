@@ -111,6 +111,7 @@
             <div class="flex items-center gap-4 overflow-x-auto pt-6 mt-6 border-t border-slate-800 text-xs font-semibold text-slate-300 scrollbar-none">
                 <a href="{{ route('profile.promotion') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">🏷️ Hạng thành viên</a>
                 <a href="{{ route('profile.orders') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">📜 Lịch sử mua hàng</a>
+                <a href="{{ route('profile.wishlist') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">❤️ Yêu thích</a>
                 <a href="{{ route('profile.returns') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">🔄 Đổi / Trả của tôi</a>
                 <a href="{{ route('profile.reviews') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">⭐ Đánh giá của tôi</a>
                 <a href="{{ route('profile.user.info') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">📍 Sổ địa chỉ</a>
@@ -136,6 +137,9 @@
                 <a href="{{ route('profile.orders') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl {{ ($activeTab ?? '') === 'orders' ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white' }}">
                     <span>📜</span> Lịch sử mua hàng
                 </a>
+                <a href="{{ route('profile.wishlist') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl {{ ($activeTab ?? '') === 'my-wishlist' ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white' }}">
+                    <span>❤️</span> Sản phẩm yêu thích
+                </a>
                 <a href="{{ route('profile.returns') }}" class="flex items-center gap-3 px-4 py-3 rounded-xl {{ ($activeTab ?? '') === 'my-returns' ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-md' : 'hover:bg-slate-800 hover:text-white' }}">
                     <span>🔄</span> Đổi / Trả của tôi
                 </a>
@@ -150,7 +154,7 @@
                 </a>
                 <form method="POST" action="{{ route('logout') }}" class="pt-2 border-t border-slate-800">
                     @csrf
-                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 transition text-left font-bold">
+                    <button type="submit" class="w-full flex items-center gap-3 px-4 py-3 rounded-xl text-rose-400 hover:bg-rose-500/10 transition text-left font-bold cursor-pointer">
                         <span>🚪</span> Đăng xuất
                     </button>
                 </form>
@@ -162,6 +166,7 @@
                 <!-- TAB 1: TỔNG QUAN -->
                 @if(($activeTab ?? '') === 'overview')
                     <div class="space-y-6">
+                        <!-- 1. Đơn hàng gần đây -->
                         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                                 <h2 class="font-bold text-sm text-white">Đơn hàng gần đây</h2>
@@ -192,7 +197,7 @@
                                     @endforeach
                                     <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
                                         <span class="text-slate-400">Thanh toán: <strong class="text-slate-200">{{ $latestOrder->payment_method }}</strong></span>
-                                        <button @click="showOrderDetailModal(@js($latestOrder->load('items')))" class="text-xs text-rose-400 font-semibold hover:underline">
+                                        <button @click="showOrderDetailModal(@js($latestOrder->load('items')))" class="text-xs text-rose-400 font-semibold hover:underline cursor-pointer">
                                             Xem chi tiết &gt;
                                         </button>
                                     </div>
@@ -201,6 +206,122 @@
                                 <div class="text-center py-8 text-xs text-slate-400">Chưa có đơn hàng nào gần đây.</div>
                             @endif
                         </div>
+
+                        <!-- 2. Sản phẩm yêu thích của bạn (Nằm ngay bên dưới để dễ tìm) -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+                            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <h2 class="font-bold text-sm text-white flex items-center gap-2">
+                                    <span>❤️</span> Sản phẩm bạn đã yêu thích
+                                </h2>
+                                <a href="{{ route('profile.wishlist') }}" class="text-xs text-rose-400 hover:underline font-semibold">Xem tất cả ({{ isset($myWishlists) ? $myWishlists->total() : 0 }}) &rarr;</a>
+                            </div>
+
+                            @if(isset($myWishlists) && $myWishlists->count() > 0)
+                                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                                    @foreach($myWishlists->take(4) as $item)
+                                        @php $product = $item->product; @endphp
+                                        @if($product)
+                                            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-3 flex flex-col justify-between hover:border-rose-500/50 transition group relative">
+                                                <a href="{{ route('shop.product', $product->slug ?? $product->id) }}" class="block aspect-square bg-slate-900 rounded-xl p-2 overflow-hidden mb-2">
+                                                    <img src="{{ $product->image ? asset('storage/' . $product->image) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400' }}" 
+                                                         alt="{{ $product->name }}" 
+                                                         class="w-full h-full object-contain group-hover:scale-105 transition duration-300">
+                                                </a>
+                                                <div class="space-y-1">
+                                                    <span class="text-[9px] font-mono text-rose-400 uppercase tracking-wider block">{{ $product->brand->name ?? 'TECHZONE' }}</span>
+                                                    <h3 class="font-bold text-[11px] line-clamp-1 hover:text-rose-400 transition">
+                                                        <a href="{{ route('shop.product', $product->slug ?? $product->id) }}">{{ $product->name }}</a>
+                                                    </h3>
+                                                    <div class="font-mono font-bold text-rose-500 text-xs">
+                                                        {{ number_format($product->price ?? $product->regular_price ?? 0, 0, ',', '.') }}₫
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        @endif
+                                    @endforeach
+                                </div>
+                            @else
+                                <div class="text-center py-8 text-xs text-slate-400">
+                                    Bạn chưa lưu sản phẩm nào vào danh sách yêu thích.
+                                    <a href="{{ route('shop.index') }}" class="text-rose-400 font-bold hover:underline block mt-1">Khám phá sản phẩm ngay &rarr;</a>
+                                </div>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                <!-- TAB: SẢN PHẨM YÊU THÍCH (MY-WISHLIST) -->
+                @if(($activeTab ?? '') === 'my-wishlist')
+                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                            <div>
+                                <h2 class="font-bold text-sm text-white flex items-center gap-2">
+                                    <span>❤️</span> Danh Sách Sản Phẩm Yêu Thích
+                                </h2>
+                                <p class="text-xs text-slate-400 mt-0.5">Sản phẩm công nghệ bạn đã đánh dấu để theo dõi và mua lại</p>
+                            </div>
+                            <span class="text-xs font-mono font-bold text-rose-400 px-2.5 py-1 bg-rose-500/10 border border-rose-500/20 rounded-lg">
+                                {{ method_exists($myWishlists, 'total') ? $myWishlists->total() : $myWishlists->count() }} sản phẩm
+                            </span>
+                        </div>
+
+                        @if(isset($myWishlists) && $myWishlists->count() > 0)
+                            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+                                @foreach($myWishlists as $item)
+                                    @php $product = $item->product; @endphp
+                                    @if($product)
+                                        <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-rose-500/50 transition group relative shadow-lg">
+                                            <!-- Nút Bỏ thích nhanh -->
+                                            <form action="{{ route('wishlist.destroy', $product->id) }}" method="POST" class="absolute top-2.5 right-2.5 z-10">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" title="Bỏ thích" class="w-7 h-7 rounded-full bg-slate-900/90 hover:bg-rose-600 text-slate-400 hover:text-white flex items-center justify-center transition border border-slate-800 cursor-pointer text-xs">
+                                                    &times;
+                                                </button>
+                                            </form>
+
+                                            <div>
+                                                <a href="{{ route('shop.product', $product->slug ?? $product->id) }}" class="block aspect-square bg-slate-900 rounded-xl p-3 overflow-hidden mb-3">
+                                                    <img src="{{ $product->image ? asset('storage/' . $product->image) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400' }}" 
+                                                         alt="{{ $product->name }}" 
+                                                         class="w-full h-full object-contain group-hover:scale-105 transition duration-300">
+                                                </a>
+                                                <div class="space-y-1">
+                                                    <span class="text-[9px] font-mono text-rose-400 uppercase tracking-wider block">{{ $product->brand->name ?? 'TECHZONE' }}</span>
+                                                    <h3 class="font-bold text-xs line-clamp-2 hover:text-rose-400 transition">
+                                                        <a href="{{ route('shop.product', $product->slug ?? $product->id) }}">{{ $product->name }}</a>
+                                                    </h3>
+                                                    <div class="font-mono font-bold text-rose-500 text-sm">
+                                                        {{ number_format($product->price ?? $product->regular_price ?? 0, 0, ',', '.') }}₫
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            <div class="pt-3 mt-3 border-t border-slate-900">
+                                                <a href="{{ route('shop.product', $product->slug ?? $product->id) }}" 
+                                                   class="block w-full py-2 bg-slate-900 hover:bg-rose-600 text-slate-300 hover:text-white border border-slate-800 hover:border-rose-500 rounded-xl text-center text-xs font-bold transition">
+                                                    Xem & Đặt Hàng
+                                                </a>
+                                            </div>
+                                        </div>
+                                    @endif
+                                @endforeach
+                            </div>
+
+                            @if(method_exists($myWishlists, 'hasPages') && $myWishlists->hasPages())
+                                <div class="pt-6 flex justify-center">
+                                    {{ $myWishlists->links() }}
+                                </div>
+                            @endif
+                        @else
+                            <div class="text-center py-12 text-xs text-slate-400 space-y-3">
+                                <div class="text-3xl">💔</div>
+                                <p>Bạn chưa lưu sản phẩm nào vào danh sách yêu thích.</p>
+                                <a href="{{ route('shop.index') }}" class="inline-block px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs shadow transition">
+                                    Khám phá sản phẩm ngay
+                                </a>
+                            </div>
+                        @endif
                     </div>
                 @endif
 
@@ -279,13 +400,13 @@
                 @if(($activeTab ?? '') === 'orders')
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6" x-data="{ orderSubTab: 'all' }">
                         <div class="flex gap-4 border-b border-slate-800 pb-3 text-xs font-bold text-slate-400 overflow-x-auto scrollbar-none">
-                            <button @click="orderSubTab = 'all'" :class="orderSubTab === 'all' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Tất cả ({{ $recentOrders->total() ?? $recentOrders->count() }})</button>
-                            <button @click="orderSubTab = 'Chờ xử lý'" :class="orderSubTab === 'Chờ xử lý' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Chờ xử lý</button>
-                            <button @click="orderSubTab = 'Đã xử lý'" :class="orderSubTab === 'Đã xử lý' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Đã xử lý</button>
-                            <button @click="orderSubTab = 'Đang chuẩn bị hàng'" :class="orderSubTab === 'Đang chuẩn bị hàng' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Đang chuẩn bị hàng</button>
-                            <button @click="orderSubTab = 'Đang giao hàng'" :class="orderSubTab === 'Đang giao hàng' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Đang giao hàng</button>
-                            <button @click="orderSubTab = 'Đã giao'" :class="orderSubTab === 'Đã giao' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Đã giao</button>
-                            <button @click="orderSubTab = 'Đã hủy'" :class="orderSubTab === 'Đã hủy' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Đã huỷ</button>
+                            <button @click="orderSubTab = 'all'" :class="orderSubTab === 'all' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap cursor-pointer">Tất cả ({{ $recentOrders->total() ?? $recentOrders->count() }})</button>
+                            <button @click="orderSubTab = 'Chờ xử lý'" :class="orderSubTab === 'Chờ xử lý' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap cursor-pointer">Chờ xử lý</button>
+                            <button @click="orderSubTab = 'Đã xử lý'" :class="orderSubTab === 'Đã xử lý' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap cursor-pointer">Đã xử lý</button>
+                            <button @click="orderSubTab = 'Đang chuẩn bị hàng'" :class="orderSubTab === 'Đang chuẩn bị hàng' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap cursor-pointer">Đang chuẩn bị hàng</button>
+                            <button @click="orderSubTab = 'Đang giao hàng'" :class="orderSubTab === 'Đang giao hàng' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap cursor-pointer">Đang giao hàng</button>
+                            <button @click="orderSubTab = 'Đã giao'" :class="orderSubTab === 'Đã giao' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap cursor-pointer">Đã giao</button>
+                            <button @click="orderSubTab = 'Đã hủy'" :class="orderSubTab === 'Đã hủy' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap cursor-pointer">Đã huỷ</button>
                         </div>
 
                         @if(isset($recentOrders) && $recentOrders->count() > 0)

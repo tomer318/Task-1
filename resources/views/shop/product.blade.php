@@ -4,6 +4,7 @@
         $defaultPrice = $defaultVariant ? $defaultVariant->price : $product->price;
         $uniqueVersions = $product->variants->pluck('version_name')->unique();
         $uniqueColors = $product->variants->pluck('color_name')->unique();
+        $isFavorited = Auth::check() && $product->isFavoritedBy(Auth::user());
     @endphp
 
     <div class="space-y-6 text-white" 
@@ -15,13 +16,13 @@
             quantity: 1,
             showAllSpecsModal: false,
             showStickyBar: false,
+            isFavorited: {{ $isFavorited ? 'true' : 'false' }},
             activeSpecTab: '{{ $groupedSpecs->keys()->first() ?? 'Cấu hình' }}',
             variants: {{ Js::from($product->variants) }},
             
             init() {
                 const observer = new IntersectionObserver((entries) => {
                     entries.forEach(entry => {
-                        // Khi nút to KHÔNG còn trên màn hình thì hiện thanh ghim
                         this.showStickyBar = !entry.isIntersecting;
                     });
                 }, { threshold: 0.1 });
@@ -42,6 +43,31 @@
 
             formatMoney(val) {
                 return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+            },
+
+            toggleWishlist() {
+                @guest
+                    window.location.href = '{{ route('login') }}';
+                    return;
+                @endguest
+
+                fetch('{{ route('wishlist.toggle', $product->id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(res => res.json())
+                .then(data => {
+                    if (data && data.success) {
+                        this.isFavorited = data.is_favorited;
+                        const badge = document.getElementById('wishlist-count');
+                        if (badge) badge.innerText = data.count;
+                    }
+                })
+                .catch(err => console.error(err));
             }
          }">
 
@@ -55,7 +81,14 @@
                 <span class="text-rose-500 font-semibold">{{ $product->brand?->name }}</span>
             </div>
             <div class="flex items-center gap-4">
-                <button class="hover:text-rose-400 flex items-center gap-1 transition">❤️ Yêu thích</button>
+                <!-- Nút Yêu thích AJAX -->
+                <button type="button" 
+                        @click="toggleWishlist()" 
+                        :class="isFavorited ? 'text-rose-500 font-bold' : 'text-slate-400 hover:text-white'"
+                        class="flex items-center gap-1.5 transition cursor-pointer">
+                    <span x-text="isFavorited ? '❤️' : '🤍'"></span>
+                    <span x-text="isFavorited ? 'Đã thích' : 'Yêu thích'"></span>
+                </button>
                 <button class="hover:text-rose-400 flex items-center gap-1 transition">💬 Hỏi đáp</button>
                 <button @click="showAllSpecsModal = true" class="hover:text-rose-400 flex items-center gap-1 transition">⚙️ Thông số</button>
                 <button class="hover:text-rose-400 flex items-center gap-1 transition">⚖️ So sánh</button>
@@ -82,7 +115,7 @@
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[380px] shadow-2xl">
                     <img :src="selectedImage" alt="{{ $product->name }}" class="max-h-72 object-contain hover:scale-105 transition duration-300">
                     
-                    <!-- Feature Tag Box (CellphoneS Highlight) -->
+                    <!-- Feature Tag Box -->
                     <div class="w-full mt-6 p-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs space-y-1.5 text-slate-300">
                         <div class="font-bold text-rose-500 uppercase tracking-wider text-[11px] mb-1">✨ TÍNH NĂNG NỔI BẬT</div>
                         <p class="leading-relaxed">{{ $product->description ?? 'Màn hình sắc nét, cấu hình hiệu năng cao, tối ưu pin bền bỉ và sạc nhanh tiện lợi.' }}</p>
@@ -123,7 +156,7 @@
                     </div>
                 </div>
 
-                <!-- Tóm tắt Thông số kỹ thuật (Spec Preview Box) -->
+                <!-- Tóm tắt Thông số kỹ thuật -->
                 <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                     <div class="flex items-center justify-between pb-3 border-b border-slate-800">
                         <h3 class="font-bold text-sm text-white flex items-center gap-2">
@@ -182,7 +215,7 @@
                                 <button type="button" 
                                         @click="updateSelection('{{ $version }}', selectedColor)"
                                         :class="selectedVersion === '{{ $version }}' ? 'border-rose-500 bg-rose-500/10 text-white ring-1 ring-rose-500' : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'"
-                                        class="p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-between">
+                                        class="p-2.5 rounded-xl border text-xs font-bold transition flex items-center justify-between cursor-pointer">
                                     <span>{{ $version }}</span>
                                     <span x-show="selectedVersion === '{{ $version }}'" class="text-rose-500 text-xs">✓</span>
                                 </button>
@@ -200,7 +233,7 @@
                                 <button type="button" 
                                         @click="updateSelection(selectedVersion, '{{ $color }}')"
                                         :class="selectedColor === '{{ $color }}' ? 'border-rose-500 bg-rose-500/10 text-white ring-1 ring-rose-500' : 'border-slate-800 bg-slate-900 text-slate-400 hover:border-slate-700'"
-                                        class="p-2.5 rounded-xl border text-xs font-semibold transition text-center flex flex-col items-center gap-1">
+                                        class="p-2.5 rounded-xl border text-xs font-semibold transition text-center flex flex-col items-center gap-1 cursor-pointer">
                                     <span class="w-3.5 h-3.5 rounded-full border border-slate-700 bg-slate-700 inline-block"></span>
                                     <span>{{ $color }}</span>
                                 </button>
@@ -217,7 +250,7 @@
                     <ul class="space-y-2 text-xs text-slate-300">
                         <li class="flex items-start gap-2">
                             <span class="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">1</span>
-                            <span>Giảm thêm <strong class="text-white">500.000₫</strong> khi thanh toán qua mã QR Momo/VNPAY.</span>
+                            <span>Giảm thêm <strong class="text-white">500.000₫</strong> khi thanh toán qua ZaloPay/VNPAY.</span>
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
@@ -240,14 +273,14 @@
 
                         <button type="submit" 
                                 x-ref="mainBuyBtn" 
-                                class="w-full py-3.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-extrabold rounded-2xl shadow-xl shadow-rose-600/30 transition text-sm flex flex-col items-center justify-center">
+                                class="w-full py-3.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-extrabold rounded-2xl shadow-xl shadow-rose-600/30 transition text-sm flex flex-col items-center justify-center cursor-pointer">
                             <span>MUA NGAY</span>
                             <span class="text-[11px] font-normal opacity-90">Giao hàng tận nơi miễn phí hoặc nhận tại cửa hàng</span>
                         </button>
                     </form>
 
                     <div class="grid grid-cols-2 gap-3">
-                        <button type="button" class="py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl text-xs transition text-center flex flex-col items-center justify-center">
+                        <button type="button" class="py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl text-xs transition text-center flex flex-col items-center justify-center cursor-pointer">
                             <span>TRẢ GÓP 0%</span>
                             <span class="text-[10px] text-slate-400 font-normal">Duyệt hồ sơ online</span>
                         </button>
@@ -257,7 +290,7 @@
                             <input type="hidden" name="quantity" value="1">
                             <input type="hidden" name="version" :value="selectedVersion">
                             <input type="hidden" name="color" :value="selectedColor">
-                            <button type="submit" class="w-full h-full py-3 bg-slate-900 hover:bg-slate-800 border border-rose-500/40 text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2">
+                            <button type="submit" class="w-full h-full py-3 bg-slate-900 hover:bg-slate-800 border border-rose-500/40 text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 cursor-pointer">
                                 <span>🛒</span> Thêm giỏ hàng
                             </button>
                         </form>
@@ -331,7 +364,7 @@
                 </div>
             </div>
 
-            <!-- Danh sách các lượt đánh giá từ khách hàng -->
+            <!-- Danh sách đánh giá -->
             <div class="space-y-4">
                 @forelse($reviews as $rev)
                     <div class="p-4 bg-slate-950 border border-slate-800/80 rounded-2xl space-y-3">
@@ -352,10 +385,8 @@
                             </div>
                         </div>
 
-                        <!-- Nội dung nhận xét -->
                         <p class="text-xs text-slate-300 leading-relaxed">{{ $rev->comment }}</p>
 
-                        <!-- Hình ảnh & Video đính kèm phóng to được -->
                         @if((is_array($rev->images) && count($rev->images) > 0) || $rev->video_path)
                             <div class="flex flex-wrap items-center gap-2 pt-1">
                                 @if(is_array($rev->images))
@@ -381,7 +412,7 @@
                 @endforelse
             </div>
 
-            <!-- Modal Phóng To Media (Ảnh / Video) -->
+            <!-- Modal Phóng To Media -->
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" x-show="previewMedia" style="display: none;">
                 <div class="relative max-w-2xl max-h-[85vh] flex flex-col items-center justify-center" @click.away="previewMedia = null">
                     <button @click="previewMedia = null" class="absolute -top-10 right-0 text-white font-bold text-2xl">&times;</button>
@@ -420,7 +451,7 @@
                     @endforeach
                 </div>
 
-                <!-- Nội dung thông số theo Tab cuộn được -->
+                <!-- Nội dung thông số -->
                 <div class="overflow-y-auto space-y-6 pr-2">
                     @foreach($groupedSpecs as $groupName => $specs)
                         <div x-show="activeSpecTab === '{{ $groupName }}'" class="space-y-3">
@@ -468,7 +499,7 @@
                         <input type="hidden" name="quantity" value="1">
                         <input type="hidden" name="version" :value="selectedVersion">
                         <input type="hidden" name="color" :value="selectedColor">
-                        <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-bold rounded-xl text-xs shadow transition">
+                        <button type="submit" class="px-6 py-2.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-bold rounded-xl text-xs shadow transition cursor-pointer">
                             MUA NGAY
                         </button>
                     </form>

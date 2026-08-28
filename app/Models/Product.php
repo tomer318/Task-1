@@ -40,4 +40,18 @@ class Product extends Model
     {
         return $this->hasMany(ProductReview::class)->where('is_active', true);
     }
+
+    public function wishlists()
+    {
+        return $this->hasMany(\App\Models\Wishlist::class);
+    }
+
+    public function isFavoritedBy($user): bool
+    {
+        if (!$user) {
+            return false;
+        }
+
+        return $this->wishlists()->where('user_id', $user->id)->exists();
+    }
 }
