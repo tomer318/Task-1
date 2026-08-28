@@ -37,7 +37,11 @@ Route::delete('/cart/clear', [CartController::class, 'clear'])->name('cart.clear
 Route::post('/cart/coupon/apply', [CartController::class, 'applyCoupon'])->name('cart.coupon.apply');
 Route::delete('/cart/coupon/remove', [CartController::class, 'removeCoupon'])->name('cart.coupon.remove');
 
-// 3. Dashboard Route
+// 3. Callback cổng thanh toán VNPay & zaloPay
+Route::get('/checkout/vnpay/callback', [CheckoutController::class, 'vnpayCallback'])->name('checkout.vnpay.callback');
+Route::get('/checkout/zalopay/callback', [CheckoutController::class, 'zaloPayCallback'])->name('checkout.zalopay.callback');
+
+// 4. Dashboard Route
 Route::get('/dashboard', function (Request $request) {
     /** @var \App\Models\User $user */
     $user = $request->user();
@@ -47,7 +51,7 @@ Route::get('/dashboard', function (Request $request) {
     return redirect()->route('home');
 })->middleware(['auth', 'verified'])->name('dashboard');
 
-// 4. Khách hàng
+// 5. Khách hàng
 Route::middleware('auth')->group(function () {
     Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');
     Route::get('/profile/orders', [ProfileController::class, 'orders'])->name('profile.orders');
@@ -77,7 +81,7 @@ Route::middleware('auth')->group(function () {
     Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('notifications.markAllRead');
 });
 
-// 5. Quản trị Admin
+// 6. Quản trị Admin
 Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->group(function () {
     Route::get('/dashboard', function () {
         $totalProducts = Product::count();

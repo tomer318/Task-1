@@ -266,6 +266,12 @@
                                 <div class="py-12 text-center text-xs text-slate-500">Bạn chưa có thông báo nào.</div>
                             @endforelse
                         </div>
+
+                        @if(method_exists($myNotifications, 'hasPages') && $myNotifications->hasPages())
+                            <div class="pt-4 flex justify-center">
+                                {{ $myNotifications->links() }}
+                            </div>
+                        @endif
                     </div>
                 @endif
 
@@ -273,7 +279,7 @@
                 @if(($activeTab ?? '') === 'orders')
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6" x-data="{ orderSubTab: 'all' }">
                         <div class="flex gap-4 border-b border-slate-800 pb-3 text-xs font-bold text-slate-400 overflow-x-auto scrollbar-none">
-                            <button @click="orderSubTab = 'all'" :class="orderSubTab === 'all' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Tất cả ({{ $recentOrders->count() }})</button>
+                            <button @click="orderSubTab = 'all'" :class="orderSubTab === 'all' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Tất cả ({{ $recentOrders->total() ?? $recentOrders->count() }})</button>
                             <button @click="orderSubTab = 'Chờ xử lý'" :class="orderSubTab === 'Chờ xử lý' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Chờ xử lý</button>
                             <button @click="orderSubTab = 'Đã xử lý'" :class="orderSubTab === 'Đã xử lý' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Đã xử lý</button>
                             <button @click="orderSubTab = 'Đang chuẩn bị hàng'" :class="orderSubTab === 'Đang chuẩn bị hàng' ? 'text-rose-500 border-b-2 border-rose-500 pb-3 -mb-3' : 'hover:text-white'" class="whitespace-nowrap">Đang chuẩn bị hàng</button>
@@ -319,7 +325,7 @@
                                                 <span class="font-mono font-bold text-white text-sm mr-2">Tổng: <span class="text-rose-500">{{ number_format($order->total_price, 0, ',', '.') }}₫</span></span>
                                                 
                                                 @if($canCancel)
-                                                    <button type="button" @click="openCancelModal(@js($order))" class="px-3 py-1.5 bg-slate-900 hover:bg-rose-950/60 border border-rose-800/40 text-rose-400 rounded-lg text-xs font-semibold transition">
+                                                    <button type="button" @click="openCancelModal(@js($order))" class="px-3 py-1.5 bg-slate-900 hover:bg-rose-950/60 border border-rose-800/40 text-rose-400 rounded-lg text-xs font-semibold transition cursor-pointer">
                                                         Hủy Đơn
                                                     </button>
                                                 @endif
@@ -329,12 +335,12 @@
                                                         ✓ Đã Đánh Giá
                                                     </span>
                                                 @elseif(in_array($order->status, ['Đã giao', 'Đã nhận hàng']))
-                                                    <button type="button" @click="openReviewModal(@js($order->load('items')))" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold shadow transition">
+                                                    <button type="button" @click="openReviewModal(@js($order->load('items')))" class="px-3 py-1.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer">
                                                         ⭐ Đánh Giá
                                                     </button>
                                                 @endif
 
-                                                <button type="button" @click="showOrderDetailModal(@js($order->load(['items', 'returnRequest'])))" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow transition">
+                                                <button type="button" @click="showOrderDetailModal(@js($order->load(['items', 'returnRequest'])))" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-lg text-xs font-semibold shadow transition cursor-pointer">
                                                     Xem chi tiết &gt;
                                                 </button>
                                             </div>
@@ -342,6 +348,12 @@
                                     </div>
                                 @endforeach
                             </div>
+
+                            @if(method_exists($recentOrders, 'hasPages') && $recentOrders->hasPages())
+                                <div class="pt-6 flex justify-center">
+                                    {{ $recentOrders->links() }}
+                                </div>
+                            @endif
                         @else
                             <div class="py-12 text-center text-xs text-slate-400">Không có đơn hàng nào.</div>
                         @endif
@@ -353,7 +365,7 @@
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
                         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                             <h2 class="font-bold text-sm text-white">Yêu cầu Đổi / Trả của bạn</h2>
-                            <span class="text-xs text-rose-400 font-mono">{{ $myReturnRequests->count() }} yêu cầu</span>
+                            <span class="text-xs text-rose-400 font-mono">{{ method_exists($myReturnRequests, 'total') ? $myReturnRequests->total() : $myReturnRequests->count() }} yêu cầu</span>
                         </div>
 
                         <div class="space-y-4">
@@ -401,6 +413,12 @@
                                 <div class="py-12 text-center text-xs text-slate-500">Bạn chưa có yêu cầu đổi/trả nào.</div>
                             @endforelse
                         </div>
+
+                        @if(method_exists($myReturnRequests, 'hasPages') && $myReturnRequests->hasPages())
+                            <div class="pt-6 flex justify-center">
+                                {{ $myReturnRequests->links() }}
+                            </div>
+                        @endif
                     </div>
                 @endif
 
@@ -410,8 +428,8 @@
                         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                             <h2 class="font-bold text-sm text-white">Lịch sử đánh giá của bạn</h2>
                             <div class="flex gap-2">
-                                <button @click="reviewSubTab = 'products'" :class="reviewSubTab === 'products' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-400'" class="px-3 py-1 rounded-lg text-xs font-semibold transition">Đánh giá sản phẩm ({{ $myProductReviews->count() }})</button>
-                                <button @click="reviewSubTab = 'orders'" :class="reviewSubTab === 'orders' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-400'" class="px-3 py-1 rounded-lg text-xs font-semibold transition">Đánh giá đơn hàng ({{ $myOrderReviews->count() }})</button>
+                                <button @click="reviewSubTab = 'products'" :class="reviewSubTab === 'products' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-400'" class="px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer">Đánh giá sản phẩm ({{ method_exists($myProductReviews, 'total') ? $myProductReviews->total() : $myProductReviews->count() }})</button>
+                                <button @click="reviewSubTab = 'orders'" :class="reviewSubTab === 'orders' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-400'" class="px-3 py-1 rounded-lg text-xs font-semibold transition cursor-pointer">Đánh giá đơn hàng ({{ method_exists($myOrderReviews, 'total') ? $myOrderReviews->total() : $myOrderReviews->count() }})</button>
                             </div>
                         </div>
 
@@ -440,6 +458,12 @@
                             @empty
                                 <div class="py-12 text-center text-xs text-slate-500">Bạn chưa có đánh giá sản phẩm nào.</div>
                             @endforelse
+
+                            @if(method_exists($myProductReviews, 'hasPages') && $myProductReviews->hasPages())
+                                <div class="pt-4 flex justify-center">
+                                    {{ $myProductReviews->links() }}
+                                </div>
+                            @endif
                         </div>
 
                         <div x-show="reviewSubTab === 'orders'" style="display: none;" class="space-y-4">
@@ -463,6 +487,12 @@
                             @empty
                                 <div class="py-12 text-center text-xs text-slate-500">Bạn chưa có đánh giá dịch vụ đơn hàng nào.</div>
                             @endforelse
+
+                            @if(method_exists($myOrderReviews, 'hasPages') && $myOrderReviews->hasPages())
+                                <div class="pt-4 flex justify-center">
+                                    {{ $myOrderReviews->links() }}
+                                </div>
+                            @endif
                         </div>
                     </div>
                 @endif
@@ -570,7 +600,7 @@
                         <h3 class="font-bold text-base text-white">Chi tiết đơn hàng: <span class="text-rose-400 font-mono" x-text="selectedOrder ? '#' + selectedOrder.order_code : ''"></span></h3>
                         <span class="text-slate-400 text-[11px]" x-text="selectedOrder ? 'Ngày đặt: ' + selectedOrder.created_at : ''"></span>
                     </div>
-                    <button @click="selectedOrder = null" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+                    <button @click="selectedOrder = null" class="text-slate-400 hover:text-white font-bold text-xl cursor-pointer">&times;</button>
                 </div>
 
                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -638,14 +668,14 @@
                             <template x-if="!selectedOrder.return_request">
                                 <button type="button" 
                                         @click="const current = selectedOrder; selectedOrder = null; openReturnModal(current)"
-                                        class="w-full py-3 bg-slate-900 border border-amber-500 hover:bg-slate-800 text-amber-400 font-bold rounded-xl transition shadow-lg shadow-amber-500/10">
+                                        class="w-full py-3 bg-slate-900 border border-amber-500 hover:bg-slate-800 text-amber-400 font-bold rounded-xl transition shadow-lg shadow-amber-500/10 cursor-pointer">
                                     🔄 Yêu Cầu Đổi / Trả Hàng
                                 </button>
                             </template>
                         </div>
                     </template>
 
-                    <button type="button" @click="selectedOrder = null" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow transition">Đóng</button>
+                    <button type="button" @click="selectedOrder = null" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow transition cursor-pointer">Đóng</button>
                 </div>
             </div>
         </div>
@@ -655,7 +685,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-5 text-xs text-white" @click.away="showCancelModal = false">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 class="font-bold text-sm text-white">Xác Nhận Hủy Đơn Hàng <span class="text-rose-400 font-mono" x-text="cancellingOrder ? '#' + cancellingOrder.order_code : ''"></span></h3>
-                    <button @click="showCancelModal = false" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+                    <button @click="showCancelModal = false" class="text-slate-400 hover:text-white font-bold text-xl cursor-pointer">&times;</button>
                 </div>
 
                 <p class="text-amber-300 bg-amber-950/40 p-3 rounded-xl border border-amber-800/40 leading-relaxed">
@@ -670,7 +700,7 @@
                             <template x-for="tag in availableCancelTags">
                                 <button type="button" @click="toggleTag('selectedCancelTags', tag)"
                                         :class="selectedCancelTags.includes(tag) ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'"
-                                        class="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition"
+                                        class="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition cursor-pointer"
                                         x-text="tag"></button>
                             </template>
                         </div>
@@ -685,8 +715,8 @@
                     </div>
 
                     <div class="flex gap-3 pt-2">
-                        <button type="button" @click="showCancelModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800">Không Hủy</button>
-                        <button type="submit" class="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg transition">Xác Nhận Hủy Đơn</button>
+                        <button type="button" @click="showCancelModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800 cursor-pointer">Không Hủy</button>
+                        <button type="submit" class="flex-1 py-3 bg-rose-600 hover:bg-rose-700 text-white font-bold rounded-xl shadow-lg transition cursor-pointer">Xác Nhận Hủy Đơn</button>
                     </div>
                 </form>
             </div>
@@ -697,7 +727,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-5 text-xs text-white max-h-[90vh] overflow-y-auto" @click.away="showReturnModal = false">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 class="font-bold text-sm text-white">Yêu Cầu Đổi / Trả Hàng Cho Đơn <span class="text-rose-400 font-mono" x-text="returningOrder ? '#' + returningOrder.order_code : ''"></span></h3>
-                    <button @click="showReturnModal = false" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+                    <button @click="showReturnModal = false" class="text-slate-400 hover:text-white font-bold text-xl cursor-pointer">&times;</button>
                 </div>
 
                 <form :action="'/orders/' + (returningOrder ? returningOrder.id : '') + '/return'" method="POST" enctype="multipart/form-data" class="space-y-4">
@@ -708,7 +738,7 @@
                             <template x-for="tag in availableReturnTags">
                                 <button type="button" @click="toggleTag('selectedReturnTags', tag)"
                                         :class="selectedReturnTags.includes(tag) ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-950 text-slate-400 border-slate-800 hover:border-slate-700'"
-                                        class="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition"
+                                        class="px-2.5 py-1.5 rounded-lg border text-[11px] font-semibold transition cursor-pointer"
                                         x-text="tag"></button>
                             </template>
                         </div>
@@ -734,8 +764,8 @@
                     </div>
 
                     <div class="flex gap-3 pt-2">
-                        <button type="button" @click="showReturnModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800">Hủy</button>
-                        <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg transition">Gửi Yêu Cầu Đổi / Trả</button>
+                        <button type="button" @click="showReturnModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800 cursor-pointer">Hủy</button>
+                        <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-600 hover:to-orange-600 text-white font-bold rounded-xl shadow-lg transition cursor-pointer">Gửi Yêu Cầu Đổi / Trả</button>
                     </div>
                 </form>
             </div>
@@ -746,7 +776,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full max-w-3xl rounded-3xl p-6 shadow-2xl space-y-5 text-xs text-white max-h-[90vh] overflow-y-auto" @click.away="showReviewOrderModal = false">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 class="font-bold text-sm text-white">Đánh Giá Đơn Hàng <span class="text-rose-400 font-mono" x-text="reviewingOrder ? '#' + reviewingOrder.order_code : ''"></span></h3>
-                    <button @click="showReviewOrderModal = false" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+                    <button @click="showReviewOrderModal = false" class="text-slate-400 hover:text-white font-bold text-xl cursor-pointer">&times;</button>
                 </div>
 
                 <form :action="'/orders/' + (reviewingOrder ? reviewingOrder.id : '') + '/reviews'" method="POST" enctype="multipart/form-data" class="space-y-6">
@@ -769,7 +799,7 @@
                                 <template x-for="tag in availableTags">
                                     <button type="button" @click="toggleTag('selectedTags', tag)"
                                             :class="selectedTags.includes(tag) ? 'bg-rose-600 text-white border-rose-500' : 'bg-slate-900 text-slate-400 border-slate-800 hover:border-slate-700'"
-                                            class="px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition"
+                                            class="px-3 py-1.5 rounded-xl border text-[11px] font-semibold transition cursor-pointer"
                                             x-text="tag"></button>
                                 </template>
                             </div>
@@ -811,8 +841,8 @@
                     </div>
 
                     <div class="flex gap-3 pt-2">
-                        <button type="button" @click="showReviewOrderModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800">Hủy</button>
-                        <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-bold rounded-xl shadow-lg transition">Gửi Đánh Giá</button>
+                        <button type="button" @click="showReviewOrderModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800 cursor-pointer">Hủy</button>
+                        <button type="submit" class="flex-1 py-3 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-bold rounded-xl shadow-lg transition cursor-pointer">Gửi Đánh Giá</button>
                     </div>
                 </form>
             </div>
@@ -823,7 +853,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 text-xs text-white" @click.away="showEditProfileModal = false">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 class="font-bold text-sm text-white">Cập nhật thông tin cá nhân</h3>
-                    <button type="button" @click="showEditProfileModal = false" class="text-slate-400 hover:text-white font-bold text-base">&times;</button>
+                    <button type="button" @click="showEditProfileModal = false" class="text-slate-400 hover:text-white font-bold text-base cursor-pointer">&times;</button>
                 </div>
                 <form method="POST" action="{{ route('profile.update') }}" class="space-y-3">
                     @csrf
@@ -853,8 +883,8 @@
                         <input type="email" name="email" value="{{ $user->email }}" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono">
                     </div>
                     <div class="pt-3 flex gap-3">
-                        <button type="button" @click="showEditProfileModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800">Hủy</button>
-                        <button type="submit" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md">Cập nhật thông tin</button>
+                        <button type="button" @click="showEditProfileModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800 cursor-pointer">Hủy</button>
+                        <button type="submit" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md cursor-pointer">Cập nhật thông tin</button>
                     </div>
                 </form>
             </div>
@@ -871,7 +901,6 @@
                  showDistrictDropdown: false,
                  showWardDropdown: false,
                  
-                 // Dữ liệu Tỉnh / Huyện / Xã mẫu phổ biến
                  locations: [
                      {
                          city: 'TP. Hồ Chí Minh',
@@ -1093,7 +1122,7 @@
             <div class="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-3xl p-6 shadow-2xl space-y-4 text-xs text-white" @click.away="showChangePasswordModal = false">
                 <div class="flex justify-between items-center border-b border-slate-800 pb-3">
                     <h3 class="font-bold text-sm text-white">Đổi mật khẩu bảo mật</h3>
-                    <button type="button" @click="showChangePasswordModal = false" class="text-slate-400 hover:text-white font-bold text-base">&times;</button>
+                    <button type="button" @click="showChangePasswordModal = false" class="text-slate-400 hover:text-white font-bold text-base cursor-pointer">&times;</button>
                 </div>
                 <form method="POST" action="{{ route('password.update') }}" class="space-y-3">
                     @csrf
@@ -1111,8 +1140,8 @@
                         <input type="password" name="password_confirmation" required class="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white">
                     </div>
                     <div class="pt-3 flex gap-3">
-                        <button type="button" @click="showChangePasswordModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800">Hủy</button>
-                        <button type="submit" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md">Đổi mật khẩu</button>
+                        <button type="button" @click="showChangePasswordModal = false" class="flex-1 py-3 border border-slate-800 font-bold rounded-xl text-slate-400 hover:bg-slate-800 cursor-pointer">Hủy</button>
+                        <button type="submit" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow-md cursor-pointer">Đổi mật khẩu</button>
                     </div>
                 </form>
             </div>

@@ -7,6 +7,15 @@ use Illuminate\Http\Request;
 
 class NotificationController extends Controller
 {
+    public function index(Request $request)
+    {
+        $notifications = \App\Models\Notification::where('user_id', auth()->id())
+            ->latest()
+            ->paginate(6); // Phân trang mỗi trang 6 thông báo
+
+        return view('shop.profile.notifications', compact('notifications'));
+    }
+
     public function markAsRead(Request $request, Notification $notification)
     {
         if ($notification->user_id !== $request->user()->id) {

@@ -21,24 +21,51 @@ class ProfileController extends Controller
         $user = $request->user();
         $addresses = method_exists($user, 'addresses') ? $user->addresses : collect([]);
         
-        $ordersQuery = Order::with(['items', 'review', 'productReviews.product', 'cancellation', 'returnRequest'])
+        // 1. Toàn bộ đơn để tính tổng tiền & thống kê
+        $allOrders = Order::with(['returnRequest'])
             ->where('user_id', $user->id)
-            ->latest();
-        $recentOrders = $ordersQuery->get();
-        $ordersCount = $recentOrders->count();
+            ->latest()
+            ->get();
+        $ordersCount = $allOrders->count();
 
         // Chỉ tính tiền tích lũy cho các đơn Đã giao VÀ chưa bị hoàn tiền / đổi trả thành công
-        $totalSpent = $recentOrders->filter(function ($order) {
+        $totalSpent = $allOrders->filter(function ($order) {
             $isReturned = $order->returnRequest && in_array($order->returnRequest->status, ['Đã hoàn tiền', 'Đã đổi/trả']);
             return in_array($order->status, ['Đã giao', 'Đã nhận hàng']) && !$isReturned;
         })->sum('total_price');
 
-        $myProductReviews = ProductReview::with(['product', 'order'])->where('user_id', $user->id)->latest()->get();
-        $myOrderReviews = OrderReview::with('order')->where('user_id', $user->id)->latest()->get();
-        $myReturnRequests = ReturnRequest::with(['order.items'])->where('user_id', $user->id)->latest()->get();
-        $myNotifications = $user->notifications()->take(30)->get();
+        // 2. Phân trang riêng cho Lịch sử mua hàng (5 đơn / trang)
+        $recentOrders = Order::with(['items', 'review', 'productReviews.product', 'cancellation', 'returnRequest'])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->paginate(5, ['*'], 'orders_page');
 
-        return compact('user', 'addresses', 'recentOrders', 'ordersCount', 'totalSpent', 'activeTab', 'myProductReviews', 'myOrderReviews', 'myReturnRequests', 'myNotifications');
+        // 3. Phân trang Đánh giá sản phẩm & Đánh giá đơn hàng (5 mục / trang)
+        $myProductReviews = ProductReview::with(['product', 'order'])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->paginate(5, ['*'], 'product_reviews_page');
+
+        $myOrderReviews = OrderReview::with('order')
+            ->where('user_id', $user->id)
+            ->latest()
+            ->paginate(5, ['*'], 'order_reviews_page');
+
+        // 4. Phân trang Yêu cầu Đổi / Trả (5 yêu cầu / trang)
+        $myReturnRequests = ReturnRequest::with(['order.items'])
+            ->where('user_id', $user->id)
+            ->latest()
+            ->paginate(5, ['*'], 'returns_page');
+
+        // 5. Phân trang Thông báo (6 thông báo / trang)
+        $myNotifications = $user->notifications()
+            ->latest()
+            ->paginate(6, ['*'], 'notifications_page');
+
+        return compact(
+            'user', 'addresses', 'recentOrders', 'ordersCount', 'totalSpent', 
+            'activeTab', 'myProductReviews', 'myOrderReviews', 'myReturnRequests', 'myNotifications'
+        );
     }
 
     public function edit(Request $request): View

@@ -7,6 +7,9 @@ use App\Models\Order;
 use App\Models\OrderItem;
 use App\Models\Coupon;
 use App\Services\NotificationService;
+use Illuminate\Support\Facades\Auth;
+use App\Services\VNPayService;
+use App\Services\ZaloPayService;
 use Illuminate\Support\Facades\DB;
 
 class CheckoutController extends Controller
@@ -117,17 +120,98 @@ class CheckoutController extends Controller
 
             DB::commit();
 
-            $orderCode = $order->order_code;
+            // 1. Chuyển hướng Cổng VNPay
+            if ($request->payment_method === 'VNPAY') {
+                $vnpayUrl = VNPayService::createPaymentUrl($order);
+                session()->forget(['cart', 'coupon']);
+                return redirect()->away($vnpayUrl);
+            }
+
+            // 2. Chuyển hướng Cổng ZaloPay Sandbox
+            if ($request->payment_method === 'ZALOPAY') {
+                $zaloPayUrl = ZaloPayService::createPaymentUrl($order);
+                session()->forget(['cart', 'coupon']);
+
+                if ($zaloPayUrl) {
+                    return redirect()->away($zaloPayUrl);
+                }
+
+                return redirect()->route('profile.orders')->with('error', 'Không thể tạo phiên thanh toán ZaloPay Sandbox.');
+            }
+
+            // 3. Mặc định COD
             session()->forget(['cart', 'coupon']);
 
             return redirect()->route('checkout.success')->with([
                 'success' => 'Đặt hàng thành công!',
-                'order_code' => $orderCode
+                'order_code' => $order->order_code
             ]);
 
         } catch (\Exception $e) {
             DB::rollBack();
             return back()->with('error', 'Có lỗi xảy ra: ' . $e->getMessage());
         }
+    }
+
+    // Callback VNPay
+    public function vnpayCallback(Request $request)
+    {
+        $vnp_ResponseCode = $request->vnp_ResponseCode;
+        $vnp_TxnRef = $request->vnp_TxnRef;
+        $orderCode = explode('-', $vnp_TxnRef)[0] . '-' . explode('-', $vnp_TxnRef)[1] . '-' . explode('-', $vnp_TxnRef)[2];
+
+        $order = Order::where('order_code', $orderCode)->first();
+
+        if ($order && $vnp_ResponseCode === '00') {
+            $order->update(['payment_status' => 'Đã thanh toán']);
+
+            NotificationService::send(
+                $order->user_id,
+                'order',
+                'Thanh toán VNPay thành công #' . $order->order_code,
+                'Đơn hàng #' . $order->order_code . ' đã được thanh toán thành công qua cổng VNPay Sandbox.',
+                route('profile.orders')
+            );
+
+            return redirect()->route('checkout.success')->with([
+                'success' => 'Thanh toán VNPay thành công!',
+                'order_code' => $order->order_code
+            ]);
+        }
+
+        return redirect()->route('profile.orders')->with('error', 'Giao dịch thanh toán VNPay không thành công hoặc đã bị hủy.');
+    }
+
+    // Callback ZaloPay
+    public function zaloPayCallback(Request $request)
+    {
+        $status = $request->input('status');
+        $apptransid = $request->input('apptransid');
+        $userId = Auth::id();
+
+        // Tìm đơn hàng mới nhất đang chờ thanh toán qua ZALOPAY của user hiện tại
+        $order = Order::where('user_id', $userId)
+            ->where('payment_method', 'ZALOPAY')
+            ->latest()
+            ->first();
+
+        if ($order && (int) $status === 1) {
+            $order->update(['payment_status' => 'Đã thanh toán']);
+
+            NotificationService::send(
+                $order->user_id,
+                'order',
+                'Thanh toán ZaloPay thành công #' . $order->order_code,
+                'Đơn hàng #' . $order->order_code . ' đã được thanh toán thành công qua ví ZaloPay.',
+                route('profile.orders')
+            );
+
+            return redirect()->route('checkout.success')->with([
+                'success' => 'Thanh toán ZaloPay thành công!',
+                'order_code' => $order->order_code
+            ]);
+        }
+
+        return redirect()->route('profile.orders')->with('info', 'Đã quay lại từ cổng ZaloPay.');
     }
 }

@@ -26,7 +26,8 @@
                  return Math.max(0, this.subtotal - this.discount + this.shippingFee);
              },
              companyInvoice: false,
-             useExistingAddress: {{ isset($addresses) && count($addresses) > 0 ? 'true' : 'false' }}
+             useExistingAddress: {{ isset($addresses) && count($addresses) > 0 ? 'true' : 'false' }},
+             isSubmitting: false
          }">
         
         <!-- Breadcrumb -->
@@ -36,7 +37,9 @@
             <span class="text-white">Thanh toán đơn hàng</span>
         </div>
 
-        <form action="{{ route('checkout.process') }}" method="POST" class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <form action="{{ route('checkout.process') }}" method="POST" 
+              @submit="if(isSubmitting) { $event.preventDefault(); return false; } isSubmitting = true;"
+              class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
             @csrf
 
             <!-- CỘT TRÁI: Thông tin giao hàng chi tiết -->
@@ -71,10 +74,10 @@
                     <div class="flex bg-slate-950 border border-slate-800 rounded-2xl p-1 gap-1 text-xs font-bold">
                         <button type="button" @click="deliveryMethod = 'delivery'" 
                                 :class="deliveryMethod === 'delivery' ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-md' : 'text-slate-400 hover:text-white'"
-                                class="flex-1 py-2.5 rounded-xl transition">Giao hàng tận nơi</button>
+                                class="flex-1 py-2.5 rounded-xl transition cursor-pointer">Giao hàng tận nơi</button>
                         <button type="button" @click="deliveryMethod = 'store'" 
                                 :class="deliveryMethod === 'store' ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white shadow-md' : 'text-slate-400 hover:text-white'"
-                                class="flex-1 py-2.5 rounded-xl transition">Nhận tại cửa hàng</button>
+                                class="flex-1 py-2.5 rounded-xl transition cursor-pointer">Nhận tại cửa hàng</button>
                     </div>
 
                     <!-- Form Giao tận nơi -->
@@ -90,7 +93,7 @@
                             <div class="space-y-3 pt-2">
                                 <div class="flex items-center justify-between">
                                     <label class="text-slate-400 font-semibold">Chọn địa chỉ từ sổ địa chỉ của bạn:</label>
-                                    <button type="button" @click="useExistingAddress = !useExistingAddress" class="text-rose-400 hover:underline font-semibold">
+                                    <button type="button" @click="useExistingAddress = !useExistingAddress" class="text-rose-400 hover:underline font-semibold cursor-pointer">
                                         <span x-show="useExistingAddress">+ Nhập địa chỉ mới khác</span>
                                         <span x-show="!useExistingAddress" style="display: none;">← Chọn từ sổ địa chỉ có sẵn</span>
                                     </button>
@@ -121,7 +124,7 @@
                         <div class="space-y-2.5 pt-3 border-t border-slate-800">
                             <label class="block text-slate-400 font-semibold">Chọn phương thức giao hàng</label>
                             
-                            <!-- Giao thông thường (Mặc định) -->
+                            <!-- Giao thông thường -->
                             <label class="flex items-center justify-between p-3.5 bg-slate-950 border rounded-2xl cursor-pointer transition"
                                    :class="shippingSpeed === 'normal' ? 'border-rose-500 bg-rose-950/20' : 'border-slate-800'">
                                 <div class="flex items-center gap-3">
@@ -189,43 +192,44 @@
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
                     <h2 class="font-bold text-sm text-white border-b border-slate-800 pb-3">💳 Chọn Phương Thức Thanh Toán</h2>
                     
-                    <div class="space-y-3 text-xs">
-                        <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-rose-500/60 rounded-2xl cursor-pointer">
-                            <input type="radio" name="payment_method" value="COD" checked class="text-rose-600">
+                    <div class="space-y-3">
+                        <!-- COD -->
+                        <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-rose-500 transition">
+                            <input type="radio" name="payment_method" value="COD" checked class="text-rose-600 bg-slate-900 border-slate-700">
                             <div>
-                                <span class="font-bold text-white block">Thanh toán khi nhận hàng (COD)</span>
-                                <span class="text-[11px] text-slate-400">Thanh toán tiền mặt trực tiếp cho nhân viên giao hàng.</span>
+                                <div class="font-bold text-white text-xs">Thanh toán khi nhận hàng (COD)</div>
+                                <div class="text-[11px] text-slate-400">Trả tiền mặt khi shipper giao hàng tận nơi</div>
                             </div>
                         </label>
 
-                        <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer">
-                            <input type="radio" name="payment_method" value="Banking" class="text-rose-600">
+                        <!-- VNPay -->
+                        <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-rose-500 transition">
+                            <input type="radio" name="payment_method" value="VNPAY" class="text-rose-600 bg-slate-900 border-slate-700">
                             <div>
-                                <span class="font-bold text-white block">Chuyển khoản ngân hàng qua mã QR</span>
-                                <span class="text-[11px] text-slate-400">Quét mã QR bằng ứng dụng ngân hàng bất kỳ.</span>
+                                <div class="font-bold text-white text-xs flex items-center gap-2">
+                                    <span>Cổng thanh toán VNPay (Sandbox)</span>
+                                    <span class="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] rounded font-mono">ATM / QR</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400">Hỗ trợ quét mã VNPAY-QR hoặc thẻ ATM nội địa</div>
                             </div>
                         </label>
 
-                        <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer">
-                            <input type="radio" name="payment_method" value="VNPay" class="text-rose-600">
+                        <!-- ZaloPay -->
+                        <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-blue-500 transition">
+                            <input type="radio" name="payment_method" value="ZALOPAY" class="text-blue-600 bg-slate-900 border-slate-700">
                             <div>
-                                <span class="font-bold text-white block">VNPay-QR / Thẻ nội địa</span>
-                                <span class="text-[11px] text-slate-400">Thanh toán an toàn qua cổng VNPay.</span>
-                            </div>
-                        </label>
-
-                        <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer">
-                            <input type="radio" name="payment_method" value="MoMo" class="text-rose-600">
-                            <div>
-                                <span class="font-bold text-white block">Ví điện tử MoMo</span>
-                                <span class="text-[11px] text-slate-400">Giảm thêm 2% tối đa 200.000₫ khi thanh toán qua MoMo.</span>
+                                <div class="font-bold text-white text-xs flex items-center gap-2">
+                                    <span>Ví điện tử ZaloPay (Sandbox)</span>
+                                    <span class="px-1.5 py-0.5 bg-blue-500/10 text-blue-400 border border-blue-500/20 text-[9px] rounded font-mono">ZaloPay QR</span>
+                                </div>
+                                <div class="text-[11px] text-slate-400">Quét mã QR qua ứng dụng Zalo / ZaloPay</div>
                             </div>
                         </label>
                     </div>
                 </div>
             </div>
 
-            <!-- CỘT PHẢI: Tóm tắt đơn hàng & Nút Thanh Toán Nằm TRONG Form -->
+            <!-- CỘT PHẢI: Tóm tắt đơn hàng & Nút Xác Nhận -->
             <div class="lg:col-span-5 space-y-6">
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-5 sticky top-24">
                     <h2 class="font-bold text-sm text-white pb-3 border-b border-slate-800">Thông Tin Đơn Hàng ({{ count($cart) }})</h2>
@@ -285,9 +289,13 @@
                         <span class="text-[10px] text-slate-500 block text-right">(Đã bao gồm VAT và phí ship)</span>
                     </div>
 
-                    <!-- Nút Submit nằm TRONG form -->
-                    <button type="submit" class="w-full py-4 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-extrabold rounded-2xl text-center shadow-xl shadow-rose-600/35 transition text-sm cursor-pointer">
-                        XÁC NHẬN ĐẶT HÀNG
+                    <!-- Nút Submit có trạng thái Loading chống Double Submit -->
+                    <button type="submit" 
+                            :disabled="isSubmitting"
+                            :class="isSubmitting ? 'opacity-60 cursor-not-allowed' : 'hover:from-rose-500 hover:to-red-400 cursor-pointer'"
+                            class="w-full py-4 bg-gradient-to-r from-rose-600 to-red-500 text-white font-extrabold rounded-2xl text-center shadow-xl shadow-rose-600/35 transition text-sm flex items-center justify-center gap-2">
+                        <span x-show="!isSubmitting">XÁC NHẬN ĐẶT HÀNG</span>
+                        <span x-show="isSubmitting" style="display: none;">ĐANG KẾT NỐI THANH TOÁN...</span>
                     </button>
 
                     <p class="text-[10px] text-slate-500 text-center leading-relaxed">
@@ -296,7 +304,7 @@
                 </div>
             </div>
         </form>
-        <!-- Thông báo lỗi hoặc thành công nếu có -->
+
         @if (session('error'))
             <div class="bg-rose-950/80 border border-rose-800 text-rose-300 p-4 rounded-2xl text-xs font-semibold">
                 {{ session('error') }}
