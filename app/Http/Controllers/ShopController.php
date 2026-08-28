@@ -43,20 +43,27 @@ class ShopController extends Controller
         return view('shop.category', compact('category', 'allCategories', 'products', 'brands'));
     }
 
-    public function product(string $slug)
+    public function product($slug)
     {
         $product = Product::with(['category', 'brand', 'images', 'variants', 'specifications'])
             ->where('slug', $slug)
             ->firstOrFail();
 
-        $groupedSpecs = $product->specifications->groupBy('group_name');
+        $groupedSpecs = $product->specifications->groupBy(function ($item) {
+            return $item->group_name ?? 'Cấu hình chung';
+        });
 
-        $relatedProducts = Product::with(['images', 'brand'])
-            ->where('category_id', $product->category_id)
+        $relatedProducts = Product::where('category_id', $product->category_id)
             ->where('id', '!=', $product->id)
             ->take(5)
             ->get();
 
-        return view('shop.product', compact('product', 'relatedProducts', 'groupedSpecs'));
+        // Lấy sản phẩm cùng danh mục để so sánh
+        $comparableProducts = Product::with(['brand', 'specifications'])
+            ->where('category_id', $product->category_id)
+            ->where('id', '!=', $product->id)
+            ->get();
+
+        return view('shop.product', compact('product', 'groupedSpecs', 'relatedProducts', 'comparableProducts'));
     }
 }

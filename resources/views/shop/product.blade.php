@@ -7,6 +7,25 @@
         $isFavorited = Auth::check() && $product->isFavoritedBy(Auth::user());
     @endphp
 
+    <style>
+        /* Tùy biến Scrollbar chuẩn Dark Minimal */
+        .custom-dark-scrollbar::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        .custom-dark-scrollbar::-webkit-scrollbar-track {
+            background: rgba(15, 23, 42, 0.8);
+            border-radius: 9999px;
+        }
+        .custom-dark-scrollbar::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 9999px;
+        }
+        .custom-dark-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: #06b6d4;
+        }
+    </style>
+
     <div class="space-y-6 text-white" 
          x-data="{ 
             selectedImage: '{{ $product->image ? asset('storage/' . $product->image) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=800' }}',
@@ -20,6 +39,31 @@
             activeSpecTab: '{{ $groupedSpecs->keys()->first() ?? 'Cấu hình' }}',
             variants: {{ Js::from($product->variants) }},
             
+            // Dữ liệu So Sánh với Search Dropdown thông minh
+            showCompareModal: false,
+            compareSearchQuery: '',
+            showCompareDropdown: false,
+            comparableList: {{ Js::from($comparableProducts ?? []) }},
+            selectedCompareId: {{ $comparableProducts?->first()?->id ?? 'null' }},
+            
+            get targetProduct() {
+                return this.comparableList.find(p => p.id == this.selectedCompareId) || null;
+            },
+
+            get filteredCompareList() {
+                if (!this.compareSearchQuery.trim()) return this.comparableList;
+                return this.comparableList.filter(item => 
+                    item.name.toLowerCase().includes(this.compareSearchQuery.toLowerCase()) ||
+                    (item.brand && item.brand.name.toLowerCase().includes(this.compareSearchQuery.toLowerCase()))
+                );
+            },
+
+            selectCompareProduct(prod) {
+                this.selectedCompareId = prod.id;
+                this.compareSearchQuery = prod.name;
+                this.showCompareDropdown = false;
+            },
+
             init() {
                 const observer = new IntersectionObserver((entries) => {
                     entries.forEach(entry => {
@@ -29,6 +73,10 @@
 
                 if (this.$refs.mainBuyBtn) {
                     observer.observe(this.$refs.mainBuyBtn);
+                }
+
+                if (this.targetProduct) {
+                    this.compareSearchQuery = this.targetProduct.name;
                 }
             },
 
@@ -43,6 +91,12 @@
 
             formatMoney(val) {
                 return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(val);
+            },
+
+            getSpecValue(prod, keyName) {
+                if (!prod || !prod.specifications) return '—';
+                let s = prod.specifications.find(item => item.spec_key.toLowerCase().trim() === keyName.toLowerCase().trim());
+                return s ? s.spec_value : '—';
             },
 
             toggleWishlist() {
@@ -81,17 +135,14 @@
                 <span class="text-rose-500 font-semibold">{{ $product->brand?->name }}</span>
             </div>
             <div class="flex items-center gap-4">
-                <!-- Nút Yêu thích AJAX -->
-                <button type="button" 
-                        @click="toggleWishlist()" 
-                        :class="isFavorited ? 'text-rose-500 font-bold' : 'text-slate-400 hover:text-white'"
-                        class="flex items-center gap-1.5 transition cursor-pointer">
+                <button type="button" @click="toggleWishlist()" :class="isFavorited ? 'text-rose-500 font-bold' : 'text-slate-400 hover:text-white'" class="flex items-center gap-1.5 transition cursor-pointer">
                     <span x-text="isFavorited ? '❤️' : '🤍'"></span>
                     <span x-text="isFavorited ? 'Đã thích' : 'Yêu thích'"></span>
                 </button>
-                <button class="hover:text-rose-400 flex items-center gap-1 transition">💬 Hỏi đáp</button>
-                <button @click="showAllSpecsModal = true" class="hover:text-rose-400 flex items-center gap-1 transition">⚙️ Thông số</button>
-                <button class="hover:text-rose-400 flex items-center gap-1 transition">⚖️ So sánh</button>
+                <button @click="showCompareModal = true" class="hover:text-cyan-400 flex items-center gap-1.5 transition text-cyan-500 font-semibold cursor-pointer">
+                    <span>⚖️</span> So sánh
+                </button>
+                <button @click="showAllSpecsModal = true" class="hover:text-rose-400 flex items-center gap-1 transition cursor-pointer">⚙️ Thông số</button>
             </div>
         </div>
 
@@ -115,7 +166,6 @@
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 relative overflow-hidden flex flex-col items-center justify-center min-h-[380px] shadow-2xl">
                     <img :src="selectedImage" alt="{{ $product->name }}" class="max-h-72 object-contain hover:scale-105 transition duration-300">
                     
-                    <!-- Feature Tag Box -->
                     <div class="w-full mt-6 p-4 bg-slate-950/70 border border-slate-800 rounded-2xl text-xs space-y-1.5 text-slate-300">
                         <div class="font-bold text-rose-500 uppercase tracking-wider text-[11px] mb-1">✨ TÍNH NĂNG NỔI BẬT</div>
                         <p class="leading-relaxed">{{ $product->description ?? 'Màn hình sắc nét, cấu hình hiệu năng cao, tối ưu pin bền bỉ và sạc nhanh tiện lợi.' }}</p>
@@ -123,16 +173,16 @@
                 </div>
 
                 <!-- Gallery Thumbnails -->
-                <div class="flex items-center gap-3 overflow-x-auto pb-2 scrollbar-none">
+                <div class="flex items-center gap-3 overflow-x-auto pb-2 custom-dark-scrollbar">
                     @if($product->image)
                         <button type="button" @click="selectedImage = '{{ asset('storage/' . $product->image) }}'" 
-                                class="w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500 p-1 shrink-0 transition flex items-center justify-center">
+                                class="w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500 p-1 shrink-0 transition flex items-center justify-center cursor-pointer">
                             <img src="{{ asset('storage/' . $product->image) }}" class="w-full h-full object-contain">
                         </button>
                     @endif
                     @foreach($product->images as $img)
                         <button type="button" @click="selectedImage = '{{ asset('storage/' . $img->image_path) }}'" 
-                                class="w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500 p-1 shrink-0 transition flex items-center justify-center">
+                                class="w-16 h-16 rounded-xl bg-slate-900 border border-slate-800 hover:border-rose-500 p-1 shrink-0 transition flex items-center justify-center cursor-pointer">
                             <img src="{{ asset('storage/' . $img->image_path) }}" class="w-full h-full object-contain">
                         </button>
                     @endforeach
@@ -162,13 +212,13 @@
                         <h3 class="font-bold text-sm text-white flex items-center gap-2">
                             <span>⚙️</span> Thông số kỹ thuật
                         </h3>
-                        <button @click="showAllSpecsModal = true" class="text-xs text-rose-400 hover:underline font-semibold flex items-center gap-1">
+                        <button @click="showAllSpecsModal = true" class="text-xs text-rose-400 hover:underline font-semibold flex items-center gap-1 cursor-pointer">
                             Xem tất cả thông số &gt;
                         </button>
                     </div>
 
                     <div class="divide-y divide-slate-800/60 text-xs">
-                        @forelse($product->specifications->take(7) as $spec)
+                        @forelse($product->specifications->take(6) as $spec)
                             <div class="grid grid-cols-12 py-2.5">
                                 <span class="col-span-5 text-slate-400">{{ $spec->spec_key }}</span>
                                 <span class="col-span-7 font-semibold text-slate-200">{{ $spec->spec_value }}</span>
@@ -178,14 +228,19 @@
                         @endforelse
                     </div>
 
-                    <button @click="showAllSpecsModal = true" class="w-full py-2.5 bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition">
-                        Xem cấu hình chi tiết
-                    </button>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <button @click="showAllSpecsModal = true" class="py-2.5 bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-300 hover:text-white rounded-xl text-xs font-semibold transition cursor-pointer">
+                            Xem cấu hình chi tiết
+                        </button>
+                        <button @click="showCompareModal = true" class="py-2.5 bg-slate-950 border border-cyan-500/40 hover:border-cyan-500 text-cyan-400 hover:text-cyan-300 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-lg shadow-cyan-500/10">
+                            <span>⚖️</span> So sánh cấu hình
+                        </button>
+                    </div>
                 </div>
 
             </div>
 
-            <!-- CỘT PHẢI: Chọn Phiên bản, Màu sắc, Khuyến mãi & Nút Mua -->
+            <!-- CỘT PHẢI: Giá Tiền, Phiên bản, Khuyến mãi & Nút Mua -->
             <div class="lg:col-span-5 space-y-5">
                 
                 <!-- Box Giá Tiền & Trả Góp -->
@@ -254,16 +309,12 @@
                         </li>
                         <li class="flex items-start gap-2">
                             <span class="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">2</span>
-                            <span>Tặng phiếu mua hàng trị giá <strong class="text-white">300.000₫</strong> khi mua kèm tai nghe gaming/buds.</span>
-                        </li>
-                        <li class="flex items-start gap-2">
-                            <span class="w-4 h-4 rounded-full bg-rose-500/20 text-rose-400 flex items-center justify-center text-[10px] shrink-0 mt-0.5">3</span>
-                            <span>Hỗ trợ trả góp 0% qua thẻ tín dụng hoặc cty tài chính lên đến 12 tháng.</span>
+                            <span>Tặng phiếu mua hàng trị giá <strong class="text-white">300.000₫</strong> khi mua phụ kiện kèm theo.</span>
                         </li>
                     </ul>
                 </div>
 
-                <!-- Nút Mua hàng & Thêm Giỏ Hàng -->
+                <!-- Nút Mua hàng & Thao tác chính -->
                 <div class="space-y-3 pt-2">
                     <form method="POST" action="{{ route('cart.add', $product) }}" class="space-y-3">
                         @csrf
@@ -275,14 +326,14 @@
                                 x-ref="mainBuyBtn" 
                                 class="w-full py-3.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-extrabold rounded-2xl shadow-xl shadow-rose-600/30 transition text-sm flex flex-col items-center justify-center cursor-pointer">
                             <span>MUA NGAY</span>
-                            <span class="text-[11px] font-normal opacity-90">Giao hàng tận nơi miễn phí hoặc nhận tại cửa hàng</span>
+                            <span class="text-[11px] font-normal opacity-90">Giao hàng tận nơi miễn phí toàn quốc</span>
                         </button>
                     </form>
 
                     <div class="grid grid-cols-2 gap-3">
                         <button type="button" class="py-3 bg-slate-900 hover:bg-slate-800 border border-slate-800 text-white font-bold rounded-xl text-xs transition text-center flex flex-col items-center justify-center cursor-pointer">
                             <span>TRẢ GÓP 0%</span>
-                            <span class="text-[10px] text-slate-400 font-normal">Duyệt hồ sơ online</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Duyệt hồ sơ nhanh</span>
                         </button>
                         
                         <form method="POST" action="{{ route('cart.add', $product) }}" class="w-full">
@@ -295,10 +346,167 @@
                             </button>
                         </form>
                     </div>
+
+                    <!-- NÚT SO SÁNH SẢN PHẨM NỔI BẬT -->
+                    <button type="button" 
+                            @click="showCompareModal = true"
+                            class="w-full py-3 bg-gradient-to-r from-slate-900 via-slate-800 to-slate-900 hover:from-cyan-950/40 hover:to-slate-900 border border-cyan-500/40 hover:border-cyan-400 text-cyan-400 font-extrabold rounded-2xl text-xs uppercase tracking-wider transition shadow-lg shadow-cyan-500/10 flex items-center justify-center gap-2 cursor-pointer">
+                        <span class="text-base">⚖️</span>
+                        <span>So Sánh Với Sản Phẩm Khác Cùng Loại</span>
+                    </button>
                 </div>
 
             </div>
 
+        </div>
+
+        <!-- ==================== MODAL SO SÁNH (LAYOUT MỚI: TÁCH RIÊNG SEARCH VÀ CUỘN BẢNG RÕ RÀNG) ==================== -->
+        <div x-show="showCompareModal" class="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4" style="display: none;">
+            <div class="fixed inset-0 bg-black/85 backdrop-blur-md" @click="showCompareModal = false; showCompareDropdown = false;"></div>
+            
+            <div class="relative w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-3xl p-5 sm:p-6 shadow-2xl space-y-4 max-h-[92vh] flex flex-col z-10 text-white">
+                
+                <!-- Modal Header -->
+                <div class="flex items-center justify-between pb-3 border-b border-slate-800 shrink-0">
+                    <div class="flex items-center gap-2.5">
+                        <div class="w-9 h-9 rounded-xl bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-lg">
+                            ⚖️
+                        </div>
+                        <div>
+                            <h3 class="font-bold text-sm sm:text-base text-white">Bảng So Sánh Thông Số Đối Đầu</h3>
+                            <p class="text-[11px] text-slate-400">Chọn sản phẩm so sánh để đối chiếu trực tiếp thông số</p>
+                        </div>
+                    </div>
+                    <button @click="showCompareModal = false; showCompareDropdown = false;" class="text-slate-400 hover:text-white text-2xl font-bold cursor-pointer leading-none">&times;</button>
+                </div>
+
+                <!-- THANH TÌM KIẾM SẢN PHẨM SO SÁNH (MINIMAL SEARCH BAR) -->
+                <div class="bg-slate-950/80 p-3 rounded-2xl border border-slate-800/80 shrink-0 relative" @click.away="showCompareDropdown = false">
+                    <div class="relative flex items-center">
+                        <!-- Icon Search bên trái input -->
+                        <span class="absolute left-3.5 text-slate-400 text-xs pointer-events-none">🔍</span>
+                        
+                        <input type="text" 
+                               x-model="compareSearchQuery"
+                               @focus="showCompareDropdown = true"
+                               @input="showCompareDropdown = true"
+                               placeholder="Tìm kiếm thiết bị khác để so sánh..." 
+                               class="w-full bg-slate-900 border border-slate-800 focus:border-cyan-500 rounded-xl pl-9 pr-10 py-2.5 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-1 focus:ring-cyan-500 transition shadow-inner">
+                        
+                        <!-- Nút Xóa nhanh / Mũi tên mở gọn gàng bên phải -->
+                        <div class="absolute right-3 flex items-center gap-1.5">
+                            <button type="button" 
+                                    x-show="compareSearchQuery" 
+                                    @click="compareSearchQuery = ''; showCompareDropdown = true" 
+                                    class="text-slate-500 hover:text-rose-400 text-xs transition px-1 cursor-pointer"
+                                    title="Xóa tìm kiếm">
+                                ✕
+                            </button>
+                            <span class="text-slate-600 text-[10px] pointer-events-none" :class="showCompareDropdown ? 'rotate-180 transition transform' : 'transition transform'">▼</span>
+                        </div>
+                    </div>
+
+                    <!-- Dropdown danh sách gợi ý -->
+                    <div x-show="showCompareDropdown" 
+                         class="absolute left-0 right-0 top-full mt-2 bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl z-50 max-h-56 overflow-y-auto divide-y divide-slate-800/80 custom-dark-scrollbar backdrop-blur-md"
+                         style="display: none;">
+                        <template x-for="item in filteredCompareList" :key="item.id">
+                            <div @click="selectCompareProduct(item)"
+                                 class="p-2.5 hover:bg-cyan-950/40 cursor-pointer transition flex items-center justify-between gap-3"
+                                 :class="selectedCompareId === item.id ? 'bg-cyan-950/30' : ''">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-9 h-9 rounded-lg bg-slate-950 border border-slate-800 p-1 flex items-center justify-center shrink-0">
+                                        <img :src="item.image ? ('/storage/' + item.image) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=200'" class="max-h-full object-contain">
+                                    </div>
+                                    <div>
+                                        <div class="font-bold text-xs text-white line-clamp-1" x-text="item.name"></div>
+                                        <div class="text-[10px] text-cyan-400 font-mono" x-text="item.brand ? item.brand.name : 'TECHZONE'"></div>
+                                    </div>
+                                </div>
+                                <div class="font-mono font-bold text-rose-400 text-xs shrink-0" x-text="new Intl.NumberFormat('vi-VN').format(item.price) + '₫'"></div>
+                            </div>
+                        </template>
+                        <template x-if="filteredCompareList.length === 0">
+                            <div class="p-4 text-center text-slate-400 text-xs">Không tìm thấy sản phẩm phù hợp.</div>
+                        </template>
+                    </div>
+                </div>
+
+                <!-- BẢNG SO SÁNH 2 CỘT SONG SONG: LƯỚT TOÀN BỘ BẢNG MƯỢT MÀ BẰNG SCROLLBAR -->
+                <div class="overflow-y-auto flex-1 pr-1.5 space-y-4 custom-dark-scrollbar text-xs">
+                    
+                    <!-- 1. Header Card so sánh 2 sản phẩm cố định -->
+                    <div class="grid grid-cols-12 gap-3 p-4 bg-slate-950 rounded-2xl border border-slate-800/80 items-center sticky top-0 z-20 shadow-md">
+                        <div class="col-span-3 font-bold text-slate-400 uppercase tracking-wider text-[11px]">Sản Phẩm</div>
+                        
+                        <!-- Cột Máy 1 (Hiện tại) -->
+                        <div class="col-span-4 text-center space-y-1.5">
+                            <div class="w-16 h-16 mx-auto bg-slate-900 rounded-xl p-1.5 border border-slate-800 flex items-center justify-center">
+                                <img src="{{ $product->image ? asset('storage/' . $product->image) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400' }}" class="max-h-full object-contain">
+                            </div>
+                            <div class="font-bold text-white line-clamp-2">{{ $product->name }}</div>
+                            <div class="font-mono font-black text-rose-500 text-xs sm:text-sm">{{ number_format($product->price, 0, ',', '.') }}₫</div>
+                            <span class="inline-block px-2 py-0.5 bg-rose-500/10 text-rose-400 border border-rose-500/20 text-[9px] rounded font-bold">Đang xem</span>
+                        </div>
+
+                        <div class="col-span-1 text-center font-black text-slate-600 text-sm">VS</div>
+
+                        <!-- Cột Máy 2 (Đối chiếu) -->
+                        <div class="col-span-4 text-center space-y-1.5">
+                            <template x-if="targetProduct">
+                                <div class="space-y-1.5">
+                                    <div class="w-16 h-16 mx-auto bg-slate-900 rounded-xl p-1.5 border border-slate-800 flex items-center justify-center">
+                                        <img :src="targetProduct.image ? ('/storage/' + targetProduct.image) : 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400'" class="max-h-full object-contain">
+                                    </div>
+                                    <div class="font-bold text-white line-clamp-2" x-text="targetProduct.name"></div>
+                                    <div class="font-mono font-black text-cyan-400 text-xs sm:text-sm" x-text="new Intl.NumberFormat('vi-VN').format(targetProduct.price) + '₫'"></div>
+                                    <a :href="'/product/' + targetProduct.slug" class="inline-block px-2.5 py-0.5 bg-cyan-600 hover:bg-cyan-500 text-white text-[9px] rounded font-bold transition">
+                                        Xem trang máy &gt;
+                                    </a>
+                                </div>
+                            </template>
+                            <template x-if="!targetProduct">
+                                <div class="py-6 text-slate-500 text-xs">Vui lòng chọn sản phẩm để so sánh</div>
+                            </template>
+                        </div>
+                    </div>
+
+                    <!-- 2. Danh sách so sánh từng thông số kỹ thuật (Dài bao nhiêu cuộn bấy nhiêu) -->
+                    <div class="bg-slate-950 rounded-2xl border border-slate-800/80 divide-y divide-slate-800/60">
+                        <div class="p-3 bg-slate-900/80 font-bold text-cyan-400 uppercase tracking-wider text-[11px] flex items-center justify-between">
+                            <span>Chi Tiết Bảng Cấu Hình</span>
+                            <span class="text-[10px] text-slate-400 font-normal">Cuộn để xem hết</span>
+                        </div>
+
+                        <!-- Thương hiệu -->
+                        <div class="grid grid-cols-12 p-3 items-center">
+                            <span class="col-span-3 font-semibold text-slate-400">Thương hiệu</span>
+                            <span class="col-span-4 font-bold text-white">{{ $product->brand?->name ?? '—' }}</span>
+                            <span class="col-span-1 text-center text-slate-600">•</span>
+                            <span class="col-span-4 font-bold text-cyan-300" x-text="targetProduct?.brand?.name ?? '—'"></span>
+                        </div>
+
+                        <!-- Lặp qua tất cả thông số của sản phẩm -->
+                        @foreach($product->specifications as $spec)
+                            <div class="grid grid-cols-12 p-3 items-center hover:bg-slate-900/40 transition">
+                                <span class="col-span-3 text-slate-400">{{ $spec->spec_key }}</span>
+                                <span class="col-span-4 font-semibold text-slate-200">{{ $spec->spec_value }}</span>
+                                <span class="col-span-1 text-center text-slate-600">•</span>
+                                <span class="col-span-4 font-semibold text-slate-300" x-text="getSpecValue(targetProduct, '{{ $spec->spec_key }}')"></span>
+                            </div>
+                        @endforeach
+                    </div>
+
+                </div>
+
+                <!-- Modal Footer -->
+                <div class="pt-2 border-t border-slate-800 flex justify-end shrink-0">
+                    <button @click="showCompareModal = false; showCompareDropdown = false;" class="px-6 py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-xs transition cursor-pointer">
+                        Đóng Bảng So Sánh
+                    </button>
+                </div>
+
+            </div>
         </div>
 
         <!-- ==================== PHẦN SẢN PHẨM TƯƠNG TỰ ==================== -->
@@ -337,7 +545,6 @@
                 <span class="text-xs text-rose-400 font-mono">{{ $reviews->count() }} lượt đánh giá</span>
             </h2>
 
-            <!-- Thống kê điểm sao -->
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center p-4 bg-slate-950 rounded-2xl border border-slate-800">
                 <div class="md:col-span-4 text-center md:border-r border-slate-800 pr-4 space-y-2">
                     <div class="text-4xl font-black text-rose-500">{{ number_format($avgRating, 1) }}<span class="text-base text-slate-500 font-normal">/5</span></div>
@@ -415,7 +622,7 @@
             <!-- Modal Phóng To Media -->
             <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/90 p-4" x-show="previewMedia" style="display: none;">
                 <div class="relative max-w-2xl max-h-[85vh] flex flex-col items-center justify-center" @click.away="previewMedia = null">
-                    <button @click="previewMedia = null" class="absolute -top-10 right-0 text-white font-bold text-2xl">&times;</button>
+                    <button @click="previewMedia = null" class="absolute -top-10 right-0 text-white font-bold text-2xl cursor-pointer">&times;</button>
                     
                     <template x-if="mediaType === 'image'">
                         <img :src="previewMedia" class="max-h-[80vh] rounded-2xl object-contain border border-slate-800">
@@ -436,23 +643,21 @@
                     <h3 class="font-bold text-base text-white flex items-center gap-2">
                         <span>⚙️</span> Thông số kĩ thuật chi tiết
                     </h3>
-                    <button @click="showAllSpecsModal = false" class="text-slate-400 hover:text-white text-lg">✕</button>
+                    <button @click="showAllSpecsModal = false" class="text-slate-400 hover:text-white text-lg cursor-pointer">✕</button>
                 </div>
 
-                <!-- Tabs danh mục thông số -->
-                <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 shrink-0 scrollbar-none text-xs font-semibold">
+                <div class="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-800 shrink-0 custom-dark-scrollbar text-xs font-semibold">
                     @foreach($groupedSpecs as $groupName => $specs)
                         <button type="button" 
                                 @click="activeSpecTab = '{{ $groupName }}'"
                                 :class="activeSpecTab === '{{ $groupName }}' ? 'text-rose-400 border-b-2 border-rose-500 pb-1.5' : 'text-slate-400 hover:text-slate-200'"
-                                class="whitespace-nowrap px-2 transition">
+                                class="whitespace-nowrap px-2 transition cursor-pointer">
                             {{ $groupName }}
                         </button>
                     @endforeach
                 </div>
 
-                <!-- Nội dung thông số -->
-                <div class="overflow-y-auto space-y-6 pr-2">
+                <div class="overflow-y-auto space-y-6 pr-2 custom-dark-scrollbar">
                     @foreach($groupedSpecs as $groupName => $specs)
                         <div x-show="activeSpecTab === '{{ $groupName }}'" class="space-y-3">
                             <h4 class="font-bold text-xs text-rose-500 uppercase tracking-wider">{{ $groupName }}</h4>
