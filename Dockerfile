@@ -1,4 +1,4 @@
-FROM php:8.2-cli-alpine
+FROM php:8.3-cli-alpine
 
 # Cài đặt các thư viện hệ thống cần thiết và extension PostgreSQL / MySQL / GD
 RUN apk add --no-cache \
