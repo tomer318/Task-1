@@ -25,7 +25,7 @@ class OrderController extends Controller
 
     public function updateStatus(Request $request, int|string $id)
     {
-        $order = Order::findOrFail($id);
+        $order = Order::with('items')->findOrFail($id);
         $newStatus = $request->input('status');
 
         $nextAllowed = [
@@ -47,14 +47,34 @@ class OrderController extends Controller
                 return back()->with('error', 'Không thể chuyển từ "' . $order->status . '" sang "' . $newStatus . '". Vui lòng tuân thủ quy trình tuần tự!');
             }
 
-            if ($newStatus === 'Đã hủy' && !$order->cancellation) {
-                OrderCancellation::create([
-                    'order_id' => $order->id,
-                    'user_id' => Auth::id(),
-                    'tags' => ['Admin hủy theo quy trình'],
-                    'reason' => 'Admin hủy đơn hàng từ bảng quản trị.',
-                    'cancelled_by' => 'admin',
-                ]);
+            if ($newStatus === 'Đã hủy') {
+                if (!$order->cancellation) {
+                    OrderCancellation::create([
+                        'order_id' => $order->id,
+                        'user_id' => Auth::id(),
+                        'tags' => ['Admin hủy theo quy trình'],
+                        'reason' => 'Admin hủy đơn hàng từ bảng quản trị.',
+                        'cancelled_by' => 'admin',
+                    ]);
+                }
+
+                // ADMIN HỦY ĐƠN -> HOÀN TỒN KHO TỰ ĐỘNG
+                foreach ($order->items as $item) {
+                    if ($item->product_id) {
+                        $prod = \App\Models\Product::find($item->product_id);
+                        if ($prod) {
+                            $prod->increment('stock', $item->quantity);
+
+                            $variant = $prod->variants()
+                                ->where('version_name', $item->version_name)
+                                ->where('color_name', $item->color_name)
+                                ->first();
+                            if ($variant) {
+                                $variant->increment('stock', $item->quantity);
+                            }
+                        }
+                    }
+                }
             }
 
             $order->status = $newStatus;
@@ -66,7 +86,6 @@ class OrderController extends Controller
 
         $order->save();
 
-        // Bắn thông báo cập nhật tiến trình đơn hàng cho khách hàng
         NotificationService::send(
             $order->user_id,
             'order',

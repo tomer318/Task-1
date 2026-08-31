@@ -23,17 +23,43 @@ class OrderActionController extends Controller
 
         $tags = $request->input('cancel_tags', []);
 
-        OrderCancellation::create([
-            'order_id' => $order->id,
-            'user_id' => $request->user()->id,
-            'tags' => is_array($tags) ? $tags : json_decode($tags, true),
-            'reason' => $request->input('cancel_reason'),
-            'cancelled_by' => 'customer',
-        ]);
+        \Illuminate\Support\Facades\DB::beginTransaction();
+        try {
+            OrderCancellation::create([
+                'order_id' => $order->id,
+                'user_id' => $request->user()->id,
+                'tags' => is_array($tags) ? $tags : json_decode($tags, true),
+                'reason' => $request->input('cancel_reason'),
+                'cancelled_by' => 'customer',
+            ]);
 
-        $order->update(['status' => 'Đã hủy']);
+            // HOÀN LẠI SỐ LƯỢNG TỒN KHO CHO SẢN PHẨM & BIẾN THỂ
+            foreach ($order->items as $item) {
+                if ($item->product_id) {
+                    $prod = \App\Models\Product::find($item->product_id);
+                    if ($prod) {
+                        $prod->increment('stock', $item->quantity);
 
-        return back()->with('success', 'Đơn hàng #' . $order->order_code . ' đã được hủy thành công.');
+                        $variant = $prod->variants()
+                            ->where('version_name', $item->version_name)
+                            ->where('color_name', $item->color_name)
+                            ->first();
+                        if ($variant) {
+                            $variant->increment('stock', $item->quantity);
+                        }
+                    }
+                }
+            }
+
+            $order->update(['status' => 'Đã hủy']);
+
+            \Illuminate\Support\Facades\DB::commit();
+
+            return back()->with('success', 'Đơn hàng #' . $order->order_code . ' đã được hủy thành công và hoàn tồn kho.');
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\DB::rollBack();
+            return back()->with('error', 'Có lỗi xảy ra khi hủy đơn: ' . $e->getMessage());
+        }
     }
 
     // 2. Khách hàng gửi yêu cầu Đổi / Trả hàng

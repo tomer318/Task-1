@@ -68,10 +68,12 @@
              }
          }">
 
-        <!-- Top Header Card -->
+        <!-- Top Header Card với Thiệp Rank Mini -->
         <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-2xl">
             <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
-                <div class="md:col-span-5 flex items-center gap-4">
+                
+                <!-- Cột 1: Avatar & Tên -->
+                <div class="md:col-span-4 flex items-center gap-4">
                     <div class="relative">
                         <div class="w-16 h-16 rounded-2xl bg-gradient-to-tr from-rose-600 to-orange-500 p-0.5 shadow-lg shadow-rose-600/30">
                             <div class="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center font-black text-2xl text-rose-500">
@@ -79,42 +81,68 @@
                             </div>
                         </div>
                         <span class="absolute -bottom-1 -right-1 px-1.5 py-0.5 bg-rose-600 text-white text-[9px] font-black uppercase rounded-md tracking-wider">
-                            S-NULL
+                            {{ $memberRank ?? 'M-NULL' }}
                         </span>
                     </div>
                     <div>
-                        <h1 class="text-lg font-bold text-white flex items-center gap-2">{{ $user->name }}</h1>
+                        <h1 class="text-base font-bold text-white flex items-center gap-2">{{ $user->name }}</h1>
                         <p class="text-xs text-slate-400 font-mono mt-0.5">{{ $user->phone ?? '0777190215' }}</p>
                         <p class="text-[11px] text-rose-400 font-medium">Cập nhật lại sau 01/01/2027</p>
                     </div>
                 </div>
 
-                <div class="md:col-span-7 grid grid-cols-2 gap-4 border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6">
-                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-lg">📦</div>
-                        <div>
-                            <div class="text-xl font-mono font-extrabold text-white">{{ $ordersCount ?? 0 }}</div>
-                            <div class="text-[11px] text-slate-400">Tổng số đơn hàng đã mua</div>
+                <!-- Cột 2: THIỆP RANK MINI (Ô Bạn Khoanh Đỏ) -->
+                <div class="md:col-span-4">
+                    <a href="{{ route('profile.promotion') }}" class="block p-3.5 rounded-2xl bg-gradient-to-r {{ $rankColor ?? 'from-slate-800 to-slate-950 text-white' }} border shadow-lg hover:scale-[1.02] transition duration-200 group">
+                        <div class="flex items-center justify-between">
+                            <div class="flex items-center gap-2">
+                                <span class="text-sm">💳</span>
+                                <span class="font-extrabold font-mono text-xs uppercase tracking-wider">{{ $memberRank ?? 'M-NULL' }} CLUB</span>
+                            </div>
+                            <span class="text-[10px] text-slate-400 group-hover:text-white transition">Chi tiết &gt;</span>
                         </div>
+                        <div class="mt-2 space-y-1">
+                            <div class="flex justify-between text-[11px]">
+                                <span class="text-slate-300">Đã tích lũy:</span>
+                                <strong class="font-mono">{{ number_format($totalSpent ?? 0, 0, ',', '.') }}₫</strong>
+                            </div>
+                            <!-- Thanh tiến trình mini -->
+                            <div class="w-full bg-slate-950/80 rounded-full h-1.5 overflow-hidden">
+                                <div class="bg-rose-500 h-1.5 rounded-full" style="width: {{ $progressPercent ?? 0 }}%;"></div>
+                            </div>
+                            <div class="text-[10px] text-slate-300 flex justify-between pt-0.5">
+                                @if($nextRank)
+                                    <span>Cần thêm: <strong class="font-mono text-rose-400">{{ number_format($neededSpent, 0, ',', '.') }}₫</strong></span>
+                                    <span class="text-slate-400">Lên {{ $nextRank }}</span>
+                                @else
+                                    <span class="text-amber-400 font-bold">✨ Đạt hạng cao nhất</span>
+                                @endif
+                            </div>
+                        </div>
+                    </a>
+                </div>
+
+                <!-- Cột 3: Thống kê Đơn & Tiền -->
+                <div class="md:col-span-4 grid grid-cols-2 gap-3 border-t md:border-t-0 md:border-l border-slate-800 pt-4 md:pt-0 md:pl-6">
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 flex flex-col justify-center">
+                        <div class="text-lg font-mono font-extrabold text-white">{{ $ordersCount ?? 0 }}</div>
+                        <div class="text-[10px] text-slate-400">Đơn đã mua</div>
                     </div>
-                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-4 flex items-center gap-3">
-                        <div class="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-lg">💎</div>
-                        <div>
-                            <div class="text-base sm:text-xl font-mono font-extrabold text-emerald-400">{{ number_format($totalSpent ?? 0, 0, ',', '.') }}₫</div>
-                            <div class="text-[11px] text-slate-400">Tổng tiền tích lũy</div>
-                        </div>
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-2xl p-3 flex flex-col justify-center">
+                        <div class="text-sm sm:text-base font-mono font-extrabold text-emerald-400">{{ number_format($totalSpent ?? 0, 0, ',', '.') }}₫</div>
+                        <div class="text-[10px] text-slate-400">Tiền tích lũy</div>
                     </div>
                 </div>
             </div>
 
             <!-- Quick Action Bar -->
             <div class="flex items-center gap-4 overflow-x-auto pt-6 mt-6 border-t border-slate-800 text-xs font-semibold text-slate-300 scrollbar-none">
-                <a href="{{ route('profile.promotion') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">🏷️ Hạng thành viên</a>
-                <a href="{{ route('profile.orders') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">📜 Lịch sử mua hàng</a>
-                <a href="{{ route('profile.wishlist') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">❤️ Yêu thích</a>
-                <a href="{{ route('profile.returns') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">🔄 Đổi / Trả của tôi</a>
-                <a href="{{ route('profile.reviews') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">⭐ Đánh giá của tôi</a>
-                <a href="{{ route('profile.user.info') }}" class="px-3.5 py-2 bg-slate-950 border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">📍 Sổ địa chỉ</a>
+                <a href="{{ route('profile.promotion') }}" class="px-3.5 py-2 {{ ($activeTab ?? '') === 'promotion' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-300' }} border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">🏷️ Hạng thành viên</a>
+                <a href="{{ route('profile.orders') }}" class="px-3.5 py-2 {{ ($activeTab ?? '') === 'orders' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-300' }} border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">📜 Lịch sử mua hàng</a>
+                <a href="{{ route('profile.wishlist') }}" class="px-3.5 py-2 {{ ($activeTab ?? '') === 'my-wishlist' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-300' }} border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">❤️ Yêu thích</a>
+                <a href="{{ route('profile.returns') }}" class="px-3.5 py-2 {{ ($activeTab ?? '') === 'my-returns' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-300' }} border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">🔄 Đổi / Trả của tôi</a>
+                <a href="{{ route('profile.reviews') }}" class="px-3.5 py-2 {{ ($activeTab ?? '') === 'my-reviews' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-300' }} border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">⭐ Đánh giá của tôi</a>
+                <a href="{{ route('profile.user.info') }}" class="px-3.5 py-2 {{ ($activeTab ?? '') === 'user-info' ? 'bg-rose-600 text-white' : 'bg-slate-950 text-slate-300' }} border border-slate-800 hover:border-rose-500 rounded-xl transition whitespace-nowrap">📍 Sổ địa chỉ</a>
             </div>
         </div>
 
@@ -207,7 +235,7 @@
                             @endif
                         </div>
 
-                        <!-- 2. Sản phẩm yêu thích của bạn (Nằm ngay bên dưới để dễ tìm) -->
+                        <!-- 2. Sản phẩm yêu thích -->
                         <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
                             <div class="flex items-center justify-between border-b border-slate-800 pb-3">
                                 <h2 class="font-bold text-sm text-white flex items-center gap-2">
@@ -243,14 +271,14 @@
                             @else
                                 <div class="text-center py-8 text-xs text-slate-400">
                                     Bạn chưa lưu sản phẩm nào vào danh sách yêu thích.
-                                    <a href="{{ route('shop.index') }}" class="text-rose-400 font-bold hover:underline block mt-1">Khám phá sản phẩm ngay &rarr;</a>
+                                    <a href="/" class="text-rose-400 font-bold hover:underline block mt-1">Khám phá sản phẩm ngay &rarr;</a>
                                 </div>
                             @endif
                         </div>
                     </div>
                 @endif
 
-                <!-- TAB: SẢN PHẨM YÊU THÍCH (MY-WISHLIST) -->
+                <!-- TAB: SẢN PHẨM YÊU THÍCH -->
                 @if(($activeTab ?? '') === 'my-wishlist')
                     <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
                         <div class="flex items-center justify-between border-b border-slate-800 pb-3">
@@ -271,7 +299,6 @@
                                     @php $product = $item->product; @endphp
                                     @if($product)
                                         <div class="bg-slate-950 border border-slate-800 rounded-2xl p-4 flex flex-col justify-between hover:border-rose-500/50 transition group relative shadow-lg">
-                                            <!-- Nút Bỏ thích nhanh -->
                                             <form action="{{ route('wishlist.destroy', $product->id) }}" method="POST" class="absolute top-2.5 right-2.5 z-10">
                                                 @csrf
                                                 @method('DELETE')
@@ -317,7 +344,7 @@
                             <div class="text-center py-12 text-xs text-slate-400 space-y-3">
                                 <div class="text-3xl">💔</div>
                                 <p>Bạn chưa lưu sản phẩm nào vào danh sách yêu thích.</p>
-                                <a href="{{ route('shop.index') }}" class="inline-block px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs shadow transition">
+                                <a href="/" class="inline-block px-5 py-2.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-xs shadow transition">
                                     Khám phá sản phẩm ngay
                                 </a>
                             </div>
@@ -620,17 +647,338 @@
 
                 <!-- TAB 6: HẠNG THÀNH VIÊN VÀ ƯU ĐÃI -->
                 @if(($activeTab ?? '') === 'promotion')
-                    <div class="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-                        <h2 class="font-bold text-sm text-white">Hạng thành viên của bạn</h2>
-                        <div class="p-5 bg-gradient-to-r from-slate-950 to-slate-900 border border-slate-800 text-white rounded-2xl space-y-3 shadow-lg">
-                            <div class="flex justify-between items-center text-xs">
-                                <span class="font-bold uppercase tracking-wider text-rose-400">S-NULL Club</span>
-                                <span class="font-mono text-slate-400">Thành viên TechZone</span>
+                    <div class="space-y-6" x-data="{
+                        currentRank: '{{ $memberRank ?? 'M-NULL' }}',
+                        totalSpent: {{ $totalSpent ?? 0 }},
+                        activeIdx: {{ in_array($memberRank, ['M-NULL', 'M-NEW', 'M-MEM', 'M-VIP']) ? array_search($memberRank, ['M-NULL', 'M-NEW', 'M-MEM', 'M-VIP']) : 0 }},
+                        ranks: [
+                            {
+                                id: 'M-NULL',
+                                name: 'M-NULL',
+                                nextRankName: 'M-NEW',
+                                badge: 'bg-white/80 text-slate-800',
+                                targetSpent: 3000000,
+                                cardClass: 'bg-gradient-to-br from-[#E2E4E9] via-[#D8DCE3] to-[#C2C7D0] text-slate-800 border-[#BBC1CB]',
+                                condition: 'Khách hàng vừa tạo tài khoản và chưa đạt mốc tích lũy 3.000.000₫.'
+                            },
+                            {
+                                id: 'M-NEW',
+                                name: 'M-NEW',
+                                nextRankName: 'M-MEM',
+                                badge: 'bg-white/80 text-[#8C461F]',
+                                targetSpent: 15000000,
+                                cardClass: 'bg-gradient-to-br from-[#FDE8D7] via-[#F8CCA6] to-[#EFA675] text-[#6D3212] border-[#E89E6C]',
+                                condition: 'Tổng số tiền mua hàng tích luỹ trong năm nay và năm liền trước đạt từ 3 đến 15 triệu đồng, không tính đơn hàng doanh nghiệp B2B.'
+                            },
+                            {
+                                id: 'M-MEM',
+                                name: 'M-MEM',
+                                nextRankName: 'M-VIP',
+                                badge: 'bg-white/80 text-[#6B4B02]',
+                                targetSpent: 50000000,
+                                cardClass: 'bg-gradient-to-br from-[#FFF0A5] via-[#FCD34D] to-[#E9A91F] text-[#4E3402] border-[#DE9E12]',
+                                condition: 'Tổng số tiền mua hàng tích luỹ trong năm nay và năm liền trước đạt từ 15 đến 50 triệu đồng, không tính đơn hàng doanh nghiệp B2B.'
+                            },
+                            {
+                                id: 'M-VIP',
+                                name: 'M-VIP',
+                                nextRankName: null,
+                                badge: 'bg-slate-800/90 text-amber-300 border border-slate-700',
+                                targetSpent: 50000000,
+                                cardClass: 'bg-gradient-to-br from-[#2E3038] via-[#1F2026] to-[#0D0E11] text-amber-200 border-slate-700 shadow-amber-500/10',
+                                condition: 'Tổng số tiền mua hàng tích luỹ trong năm nay và năm liền trước đạt từ 50 triệu đồng trở lên, không tính đơn hàng doanh nghiệp B2B.'
+                            }
+                        ],
+                        next() {
+                            if (this.activeIdx < this.ranks.length - 1) this.activeIdx++;
+                        },
+                        prev() {
+                            if (this.activeIdx > 0) this.activeIdx--;
+                        },
+                        get currentSelected() {
+                            return this.ranks[this.activeIdx];
+                        },
+                        isUnlocked(rankId) {
+                            let rankOrder = ['M-NULL', 'M-NEW', 'M-MEM', 'M-VIP'];
+                            return rankOrder.indexOf(this.currentRank) >= rankOrder.indexOf(rankId);
+                        },
+                        formatMoney(val) {
+                            return new Intl.NumberFormat('vi-VN').format(val) + 'đ';
+                        }
+                    }">
+                        
+                        <!-- 1. KHỐI ƯU ĐÃI CỦA BẠN (VOUCHER KHẢ DỤNG) -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
+                            <h2 class="font-bold text-sm text-white flex items-center justify-between">
+                                <span class="flex items-center gap-2">🎁 Ưu đãi & Voucher của bạn</span>
+                                <span class="text-xs text-rose-400 font-mono font-bold">3 Voucher khả dụng</span>
+                            </h2>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="p-4 bg-slate-950 border border-slate-800 hover:border-rose-500/50 rounded-2xl relative overflow-hidden space-y-2 group transition shadow-lg">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="px-2 py-0.5 rounded bg-rose-500/10 text-rose-400 font-mono font-bold text-[10px]">SHIP NHANH</span>
+                                        <span class="text-slate-400 text-[10px]">HSD: 31/12/2026</span>
+                                    </div>
+                                    <div class="font-bold text-white text-sm">
+                                        @if(($memberRank ?? '') === 'M-VIP') Giảm 30% phí Ship Nhanh
+                                        @elseif(($memberRank ?? '') === 'M-MEM') Giảm 20% phí Ship Nhanh
+                                        @elseif(($memberRank ?? '') === 'M-NEW') Giảm 10% phí Ship Nhanh
+                                        @else Giảm 5% phí Ship Nhanh @endif
+                                    </div>
+                                    <p class="text-[11px] text-slate-400">Áp dụng tự động cho phương thức giao hàng hỏa tốc.</p>
+                                </div>
+
+                                <div class="p-4 bg-slate-950 border border-slate-800 hover:border-amber-500/50 rounded-2xl relative overflow-hidden space-y-2 group transition shadow-lg">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="px-2 py-0.5 rounded bg-amber-500/10 text-amber-400 font-mono font-bold text-[10px]">SINH NHẬT</span>
+                                        <span class="text-slate-400 text-[10px]">Tháng sinh nhật</span>
+                                    </div>
+                                    <div class="font-bold text-amber-400 text-sm">
+                                        @if(($memberRank ?? '') === 'M-VIP') Tặng Voucher 500.000₫
+                                        @elseif(($memberRank ?? '') === 'M-MEM') Tặng Voucher 200.000₫
+                                        @else Tặng Voucher 50.000₫ @endif
+                                    </div>
+                                    <p class="text-[11px] text-slate-400">Đặc quyền ưu đãi sinh nhật dành riêng cho tài khoản của bạn.</p>
+                                </div>
+
+                                <div class="p-4 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-2xl relative overflow-hidden space-y-2 group transition shadow-lg">
+                                    <div class="flex items-center justify-between text-xs">
+                                        <span class="px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-400 font-mono font-bold text-[10px]">FREESHIP</span>
+                                        <span class="text-slate-400 text-[10px]">Không giới hạn</span>
+                                    </div>
+                                    <div class="font-bold text-emerald-400 text-sm">Freeship Đơn Hàng > 300K</div>
+                                    <p class="text-[11px] text-slate-400">Miễn phí 100% chi phí vận chuyển tiêu chuẩn toàn quốc.</p>
+                                </div>
                             </div>
-                            <div class="text-base font-bold">{{ $user->name }}</div>
-                            <div class="text-xs text-slate-400 pt-2 border-t border-slate-800">
-                                Tổng tích lũy: <strong class="text-emerald-400 font-mono">{{ number_format($totalSpent ?? 0, 0, ',', '.') }}₫</strong>
+                        </div>
+
+                        <!-- 2. KHỐI THIỆP RANK 3D CAROUSEL SLIDER (PHONG CÁCH CELLPHONES) -->
+                        <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 shadow-2xl space-y-8 overflow-hidden relative">
+                            
+                            <!-- Slider Card Viewport -->
+                            <div class="relative flex items-center justify-center min-h-[220px]">
+                                
+                                <!-- Nút Prev chuẩn CellphoneS -->
+                                <button type="button" @click="prev()" 
+                                        :disabled="activeIdx === 0"
+                                        :class="activeIdx === 0 ? 'opacity-20 cursor-not-allowed' : 'hover:scale-110 active:scale-95 cursor-pointer shadow-rose-500/20'"
+                                        class="absolute left-2 sm:left-4 z-30 w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center transition shadow-2xl border border-slate-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-none stroke-rose-600 stroke-[2.5]" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                                    </svg>
+                                </button>
+
+                                <!-- Dải trượt các thẻ Rank (3D Transform Stage) -->
+                                <div class="w-full max-w-4xl overflow-hidden py-4">
+                                    <div class="flex items-center justify-center transition-all duration-500 ease-out"
+                                         :style="'transform: translateX(' + ((1.5 - activeIdx) * 280) + 'px);'">
+                                        
+                                        <template x-for="(r, index) in ranks" :key="r.id">
+                                            <div @click="activeIdx = index"
+                                                 class="shrink-0 w-72 sm:w-80 mx-3 p-5 rounded-3xl border shadow-xl transition-all duration-500 cursor-pointer select-none flex flex-col justify-between min-h-[170px] relative"
+                                                 :class="[
+                                                     r.cardClass,
+                                                     activeIdx === index 
+                                                         ? 'scale-110 z-20 shadow-2xl shadow-black/80 ring-2 ring-white/60 opacity-100 -translate-y-1' 
+                                                         : 'scale-90 z-10 opacity-60 hover:opacity-80'
+                                                 ]">
+                                                
+                                                <!-- Top: Tag Rank Name -->
+                                                <div class="flex items-center justify-between">
+                                                    <span class="px-3.5 py-1 rounded-full font-mono font-black text-xs uppercase tracking-wider shadow-sm"
+                                                          :class="r.badge"
+                                                          x-text="r.name"></span>
+                                                    
+                                                    <span x-show="isUnlocked(r.id)" class="text-[10px] font-bold opacity-75 font-mono">
+                                                        ✓ ĐÃ MỞ
+                                                    </span>
+                                                </div>
+
+                                                <!-- TRƯỜNG HỢP 1: THẺ ĐÃ MỞ KHÓA (HIỂN THỊ CHUẨN CELLPHONES) -->
+                                                <template x-if="isUnlocked(r.id)">
+                                                    <div class="space-y-2 my-auto">
+                                                        <!-- Avatar + Tên người dùng -->
+                                                        <div class="flex items-center gap-2">
+                                                            <div class="w-6 h-6 rounded-full bg-black/15 flex items-center justify-center font-bold text-xs">
+                                                                👤
+                                                            </div>
+                                                            <span class="font-bold text-xs truncate" x-text="'{{ $user->name }}'"></span>
+                                                        </div>
+
+                                                        <!-- Dòng số tiền đã mua -->
+                                                        <div class="text-[11px] font-medium opacity-90">
+                                                            Đã mua: <strong class="font-mono font-bold" x-text="formatMoney(totalSpent)"></strong> / <span class="font-mono" x-text="formatMoney(r.targetSpent)"></span>
+                                                        </div>
+
+                                                        <!-- Thanh Progress Bar nhỏ bên trong thẻ kèm Checkpoint đỏ -->
+                                                        <div class="space-y-1">
+                                                            <div class="relative w-full bg-black/15 rounded-full h-1.5 flex items-center">
+                                                                <div class="bg-red-600 h-1.5 rounded-full transition-all duration-500"
+                                                                     :style="'width: ' + Math.min(100, Math.round((totalSpent / r.targetSpent) * 100)) + '%;'"></div>
+                                                                
+                                                                <!-- Dấu Check đỏ ở cuối thanh khi hoàn thành 100% -->
+                                                                <div x-show="totalSpent >= r.targetSpent" 
+                                                                     class="absolute right-0 w-3.5 h-3.5 rounded-full bg-red-600 text-white flex items-center justify-center shadow-md">
+                                                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-2.5 h-2.5 stroke-white stroke-[3] fill-none" viewBox="0 0 24 24">
+                                                                        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                                                    </svg>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+
+                                                        <!-- Dòng thông báo thăng hạng -->
+                                                        <div class="text-[10px] opacity-80 pt-1">
+                                                            <template x-if="r.nextRankName && totalSpent < r.targetSpent">
+                                                                <span>Cần chi tiêu thêm <strong class="font-mono font-bold" x-text="formatMoney(r.targetSpent - totalSpent)"></strong> để lên hạng <strong x-text="r.nextRankName"></strong></span>
+                                                            </template>
+                                                            <template x-if="totalSpent >= r.targetSpent">
+                                                                <span class="font-bold text-emerald-900">✓ Đã đủ điều kiện duy trì & thăng hạng</span>
+                                                            </template>
+                                                        </div>
+                                                    </div>
+                                                </template>
+
+                                                <!-- TRƯỜNG HỢP 2: THẺ CHƯA MỞ KHÓA (HIỂN THỊ Ổ KHÓA CHUẨN CELLPHONES) -->
+                                                <template x-if="!isUnlocked(r.id)">
+                                                    <div class="flex flex-col items-center justify-center my-auto py-2">
+                                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 opacity-50 mb-1" viewBox="0 0 24 24" fill="currentColor">
+                                                            <path fill-rule="evenodd" d="M12 1.5a5.25 5.25 0 00-5.25 5.25v3a3 3 0 00-3 3v6.75a3 3 0 003 3h10.5a3 3 0 003-3v-6.75a3 3 0 00-3-3v-3c0-2.9-2.35-5.25-5.25-5.25zm3.75 8.25v-3a3.75 3.75 0 00-7.5 0v3h7.5z" clip-rule="evenodd" />
+                                                        </svg>
+                                                        <span class="text-[11px] font-medium opacity-70">Chưa mở khóa hạng thành viên</span>
+                                                    </div>
+                                                </template>
+
+                                                <!-- Footer Info -->
+                                                <div class="pt-1.5 border-t border-black/10 text-[9px] flex justify-between items-center opacity-70 font-mono">
+                                                    <span>Hạng được cập nhật sau 01/01/2027</span>
+                                                    <span>TechZone</span>
+                                                </div>
+                                            </div>
+                                        </template>
+
+                                    </div>
+                                </div>
+
+                                <!-- Nút Next chuẩn CellphoneS -->
+                                <button type="button" @click="next()" 
+                                        :disabled="activeIdx === ranks.length - 1"
+                                        :class="activeIdx === ranks.length - 1 ? 'opacity-20 cursor-not-allowed' : 'hover:scale-110 active:scale-95 cursor-pointer shadow-rose-500/20'"
+                                        class="absolute right-2 sm:right-4 z-30 w-10 h-10 rounded-full bg-white text-slate-900 flex items-center justify-center transition shadow-2xl border border-slate-200">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 fill-none stroke-rose-600 stroke-[2.5]" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
+                                    </svg>
+                                </button>
                             </div>
+
+                            <!-- Thanh Timeline Chấm Tròn với Tiến Trình Đỏ Chạy Theo Thẻ Đang Chọn (Bỏ Số 1 2 3 4) -->
+                            <div class="max-w-xl mx-auto space-y-2 pt-2">
+                                <div class="relative flex items-center justify-between">
+                                    <!-- Rãnh xám -->
+                                    <div class="absolute inset-x-0 h-1.5 bg-slate-800 z-0 rounded-full"></div>
+                                    
+                                    <!-- Thanh đỏ tiến trình động chạy theo thẻ đang trượt tới (activeIdx) -->
+                                    <div class="absolute left-0 h-1.5 bg-gradient-to-r from-red-600 to-rose-500 z-0 rounded-full transition-all duration-500 ease-out shadow-lg shadow-rose-600/50"
+                                         :style="'width: ' + (activeIdx * 33.33) + '%'"></div>
+                                    
+                                    <!-- 4 Mốc Chấm Tròn (Dấu Chấm & Icon Check Chuẩn CellphoneS) -->
+                                    <template x-for="(r, idx) in ranks" :key="r.id">
+                                        <div @click="activeIdx = idx" class="relative z-10 flex flex-col items-center cursor-pointer group">
+                                            <!-- Mốc khi đã đạt mốc (Hiện Chấm Đỏ kèm Icon Check) -->
+                                            <div x-show="idx <= activeIdx" 
+                                                 class="w-6 h-6 rounded-full bg-red-600 text-white flex items-center justify-center shadow-lg ring-4 ring-slate-900 transition-transform duration-300 group-hover:scale-110">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="w-3.5 h-3.5 stroke-white stroke-[3] fill-none" viewBox="0 0 24 24">
+                                                    <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5" />
+                                                </svg>
+                                            </div>
+
+                                            <!-- Mốc khi chưa đến (Hiện Vòng Tròn Đôi Rỗng Chuẩn CellphoneS) -->
+                                            <div x-show="idx > activeIdx" 
+                                                 class="w-5 h-5 rounded-full bg-slate-900 border-2 border-slate-600 ring-2 ring-slate-800 transition-transform duration-300 group-hover:scale-110"></div>
+                                            
+                                            <span class="text-[11px] font-mono mt-2 transition"
+                                                  :class="activeIdx === idx ? 'text-rose-400 font-bold scale-105' : (isUnlocked(r.id) ? 'text-white' : 'text-slate-500')"
+                                                  x-text="r.name"></span>
+                                        </div>
+                                    </template>
+                                </div>
+                            </div>
+
+                            <!-- 3. BẢNG CHI TIẾT ĐIỀU KIỆN & QUYỀN LỢI TƯƠNG ỨNG THEO THẺ ĐANG CHỌN -->
+                            <div class="space-y-6 pt-6 border-t border-slate-800">
+                                
+                                <!-- Điều kiện thăng cấp -->
+                                <div class="space-y-2">
+                                    <h3 class="font-bold text-xs uppercase tracking-wider text-rose-400 flex items-center gap-2">
+                                        <span>💎</span> ĐIỀU KIỆN THĂNG CẤP
+                                    </h3>
+                                    <div class="p-4 bg-slate-950 border border-slate-800 rounded-2xl text-xs text-slate-300 leading-relaxed"
+                                         x-text="currentSelected.condition">
+                                    </div>
+                                </div>
+
+                                <!-- Danh sách quyền lợi mua hàng -->
+                                <div class="space-y-3">
+                                    <h3 class="font-bold text-xs uppercase tracking-wider text-rose-400 flex items-center gap-2">
+                                        <span>🎁</span> ƯU ĐÃI MUA HÀNG DÀNH CHO <span x-text="currentSelected.name" class="text-white"></span>
+                                    </h3>
+
+                                    <div class="space-y-2.5 text-xs text-slate-300">
+                                        <!-- Quyền lợi 1: Phí vận chuyển -->
+                                        <div class="p-3.5 bg-slate-950 border border-slate-800/80 rounded-2xl flex items-start gap-3">
+                                            <span class="text-base text-rose-500">🚚</span>
+                                            <div>
+                                                <strong class="text-white block font-semibold">Ưu đãi phí vận chuyển:</strong>
+                                                <span class="text-slate-400 text-[11px]">
+                                                    <template x-if="currentSelected.id === 'M-NULL'"><span>Giảm 5% phí giao hàng nhanh khi đặt đơn.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-NEW'"><span>Giảm 10% phí giao hàng nhanh khi đặt đơn.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-MEM'"><span>Giảm 20% phí giao hàng nhanh khi đặt đơn + Freeship đơn > 300K.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-VIP'"><span>Giảm 30% phí giao hàng nhanh + Freeship toàn quốc không giới hạn.</span></template>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Quyền lợi 2: Voucher lên hạng -->
+                                        <div class="p-3.5 bg-slate-950 border border-slate-800/80 rounded-2xl flex items-start gap-3">
+                                            <span class="text-base text-amber-400">🎫</span>
+                                            <div>
+                                                <strong class="text-white block font-semibold">Voucher tặng khi lên hạng:</strong>
+                                                <span class="text-slate-400 text-[11px]">
+                                                    <template x-if="currentSelected.id === 'M-NULL'"><span>Chưa áp dụng voucher thăng hạng.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-NEW'"><span>Tặng Voucher 50.000₫ khi thăng hạng từ M-NULL lên M-NEW.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-MEM'"><span>Tặng Voucher 100.000₫ khi thăng hạng từ M-NEW lên M-MEM.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-VIP'"><span>Tặng Voucher 300.000₫ khi thăng hạng từ M-MEM lên M-VIP.</span></template>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Quyền lợi 3: Sinh nhật -->
+                                        <div class="p-3.5 bg-slate-950 border border-slate-800/80 rounded-2xl flex items-start gap-3">
+                                            <span class="text-base text-rose-400">🎂</span>
+                                            <div>
+                                                <strong class="text-white block font-semibold">Ưu đãi đặc quyền ngày sinh nhật:</strong>
+                                                <span class="text-slate-400 text-[11px]">
+                                                    <template x-if="currentSelected.id === 'M-NULL'"><span>Phiếu mua hàng sinh nhật trị giá 50.000₫.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-NEW'"><span>Phiếu mua hàng sinh nhật trị giá 100.000₫.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-MEM'"><span>Phiếu mua hàng sinh nhật trị giá 200.000₫.</span></template>
+                                                    <template x-if="currentSelected.id === 'M-VIP'"><span>Phiếu mua hàng sinh nhật đặc biệt trị giá 500.000₫.</span></template>
+                                                </span>
+                                            </div>
+                                        </div>
+
+                                        <!-- Quyền lợi 4: Bảo hành -->
+                                        <div class="p-3.5 bg-slate-950 border border-slate-800/80 rounded-2xl flex items-start gap-3">
+                                            <span class="text-base text-emerald-400">🛡️</span>
+                                            <div>
+                                                <strong class="text-white block font-semibold">Chính sách hỗ trợ & Bảo hành:</strong>
+                                                <span class="text-slate-400 text-[11px]">Được ưu tiên xử lý yêu cầu đổi trả và tiếp nhận bảo hành máy chính hãng tại trung tâm TechZone.</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                            </div>
+
                         </div>
                     </div>
                 @endif

@@ -5,12 +5,17 @@ namespace App\Http\Controllers;
 use App\Models\Product;
 use Illuminate\Http\Request;
 use App\Models\Coupon;
+use Illuminate\Support\Facades\Auth;
 
 class CartController extends Controller
 {
     public function index()
     {
-        return view('cart.index');
+        $allCoupons = Coupon::where('is_active', true)->get();
+        $user = Auth::user();
+        $memberRank = $user ? $user->member_rank : 'M-NULL';
+
+        return view('cart.index', compact('allCoupons', 'memberRank'));
     }
 
     public function add(Request $request, Product $product)
@@ -91,15 +96,15 @@ class CartController extends Controller
         $coupon = Coupon::where('code', $code)->where('is_active', true)->first();
 
         if (!$coupon) {
-            return back()->with('error', 'Mã giảm giá không tồn tại hoặc đã bị khóa!');
+            return back()->with('error', 'Mã ưu đãi không tồn tại hoặc đã bị khóa!');
         }
 
         if ($coupon->expires_at && $coupon->expires_at->isPast()) {
-            return back()->with('error', 'Mã giảm giá đã hết hạn sử dụng!');
+            return back()->with('error', 'Mã ưu đãi đã hết hạn sử dụng!');
         }
 
         if ($coupon->usage_limit && $coupon->used_count >= $coupon->usage_limit) {
-            return back()->with('error', 'Mã giảm giá đã hết lượt sử dụng!');
+            return back()->with('error', 'Mã ưu đãi đã hết lượt sử dụng!');
         }
 
         $cart = session('cart', []);
@@ -113,6 +118,18 @@ class CartController extends Controller
             return back()->with('error', 'Đơn hàng tối thiểu phải từ ' . $formattedMin . '₫ mới được áp dụng mã này!');
         }
 
+        $isShippingCoupon = str_starts_with($code, 'SHIP') || str_starts_with($code, 'FAST');
+
+        if ($isShippingCoupon) {
+            session()->put('shipping_coupon', [
+                'code' => $coupon->code,
+                'type' => $coupon->type,
+                'value' => $coupon->value,
+                'min_order_value' => $coupon->min_order_value,
+            ]);
+            return back()->with('success', 'Đã áp dụng mã giảm phí Ship Siêu Tốc: ' . $coupon->code);
+        }
+
         session()->put('coupon', [
             'code' => $coupon->code,
             'type' => $coupon->type,
@@ -120,18 +137,28 @@ class CartController extends Controller
             'min_order_value' => $coupon->min_order_value,
         ]);
 
-        return back()->with('success', 'Áp dụng mã giảm giá ' . $coupon->code . ' thành công!');
+        return back()->with('success', 'Đã áp dụng mã giảm giá đơn hàng: ' . $coupon->code);
     }
 
-    public function removeCoupon()
+    public function removeCoupon(Request $request)
     {
-        session()->forget('coupon');
-        return back()->with('success', 'Đã hủy mã giảm giá!');
+        $type = $request->input('type', 'all');
+        if ($type === 'shipping') {
+            session()->forget('shipping_coupon');
+            return back()->with('success', 'Đã gỡ mã giảm phí vận chuyển!');
+        }
+        if ($type === 'order') {
+            session()->forget('coupon');
+            return back()->with('success', 'Đã gỡ mã giảm giá đơn hàng!');
+        }
+
+        session()->forget(['coupon', 'shipping_coupon']);
+        return back()->with('success', 'Đã hủy toàn bộ mã ưu đãi!');
     }
 
     public function clear()
     {
-        session()->forget('cart');
+        session()->forget(['cart', 'coupon', 'shipping_coupon']);
         return redirect()->route('cart.index');
     }
 }

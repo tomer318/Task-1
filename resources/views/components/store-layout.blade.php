@@ -85,9 +85,11 @@
         {{ $slot }}
     </main>
 
-    <!-- Footer -->
     <footer class="bg-slate-950 border-t border-slate-900 py-8 text-center text-xs text-slate-500">
         TECHZONE E-Commerce Storefront © 2026 • Session Cart & Laravel
     </footer>
+
+    <!-- TechBot AI Widget -->
+    <x-techbot-widget />
 </body>
 </html>

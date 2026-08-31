@@ -32,12 +32,42 @@ class ProfileController extends Controller
             return in_array($order->status, ['Đã giao', 'Đã nhận hàng']) && !$isReturned;
         })->sum('total_price');
 
+        // Logic xếp hạng thành viên TechZone (M-Club)
+        if ($totalSpent >= 50000000) {
+            $memberRank = 'M-VIP';
+            $rankColor = 'from-zinc-900 via-stone-900 to-black text-amber-300 border-amber-500/40';
+            $nextRank = null;
+            $nextThreshold = 50000000;
+            $neededSpent = 0;
+            $progressPercent = 100;
+        } elseif ($totalSpent >= 15000000) {
+            $memberRank = 'M-MEM';
+            $rankColor = 'from-amber-600 via-amber-700 to-amber-900 text-amber-200 border-amber-500/50';
+            $nextRank = 'M-VIP';
+            $nextThreshold = 50000000;
+            $neededSpent = max(0, 50000000 - $totalSpent);
+            $progressPercent = min(100, round((($totalSpent - 15000000) / (50000000 - 15000000)) * 100));
+        } elseif ($totalSpent >= 3000000) {
+            $memberRank = 'M-NEW';
+            $rankColor = 'from-orange-500 via-amber-600 to-orange-700 text-orange-100 border-orange-400/50';
+            $nextRank = 'M-MEM';
+            $nextThreshold = 15000000;
+            $neededSpent = max(0, 15000000 - $totalSpent);
+            $progressPercent = min(100, round((($totalSpent - 3000000) / (15000000 - 3000000)) * 100));
+        } else {
+            $memberRank = 'M-NULL';
+            $rankColor = 'from-slate-800 via-slate-900 to-slate-950 text-slate-300 border-slate-700';
+            $nextRank = 'M-NEW';
+            $nextThreshold = 3000000;
+            $neededSpent = max(0, 3000000 - $totalSpent);
+            $progressPercent = min(100, round(($totalSpent / 3000000) * 100));
+        }
+
         $recentOrders = Order::with(['items', 'review', 'productReviews.product', 'cancellation', 'returnRequest'])
             ->where('user_id', $user->id)
             ->latest()
             ->paginate(5, ['*'], 'orders_page');
 
-        // Danh sách sản phẩm yêu thích (lấy kèm theo danh mục và thương hiệu)
         $myWishlists = \App\Models\Wishlist::with(['product.category', 'product.brand'])
             ->where('user_id', $user->id)
             ->latest()
@@ -64,7 +94,8 @@ class ProfileController extends Controller
 
         return compact(
             'user', 'addresses', 'recentOrders', 'ordersCount', 'totalSpent', 
-            'activeTab', 'myWishlists', 'myProductReviews', 'myOrderReviews', 'myReturnRequests', 'myNotifications'
+            'activeTab', 'myWishlists', 'myProductReviews', 'myOrderReviews', 'myReturnRequests', 'myNotifications',
+            'memberRank', 'rankColor', 'nextRank', 'nextThreshold', 'neededSpent', 'progressPercent'
         );
     }
 

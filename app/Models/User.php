@@ -73,4 +73,39 @@ class User extends Authenticatable
     {
         return $this->belongsToMany(\App\Models\Product::class, 'wishlists');
     }
+
+    public function getMemberRankAttribute(): string
+    {
+        $totalSpent = $this->orders()
+            ->whereIn('status', ['Đã giao', 'Đã nhận hàng'])
+            ->whereDoesntHave('returnRequest', function ($q) {
+                $q->whereIn('status', ['Đã hoàn tiền', 'Đã đổi/trả']);
+            })
+            ->sum('total_price');
+
+        if ($totalSpent >= 50000000) {
+            return 'M-VIP';
+        } elseif ($totalSpent >= 15000000) {
+            return 'M-MEM';
+        } elseif ($totalSpent >= 3000000) {
+            return 'M-NEW';
+        }
+
+        return 'M-NULL';
+    }
+
+    public function getExpressShippingDiscountPercentAttribute(): int
+    {
+        return match ($this->member_rank) {
+            'M-VIP' => 30,
+            'M-MEM' => 20,
+            'M-NEW' => 10,
+            default => 5,
+        };
+    }
+
+    public function orders()
+    {
+        return $this->hasMany(\App\Models\Order::class);
+    }
 }

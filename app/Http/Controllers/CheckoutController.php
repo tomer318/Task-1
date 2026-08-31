@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Order;
+use App\Models\Product;
 use App\Models\OrderItem;
 use App\Models\Coupon;
 use App\Services\NotificationService;
@@ -23,8 +24,10 @@ class CheckoutController extends Controller
         
         $user = $request->user();
         $addresses = method_exists($user, 'addresses') ? $user->addresses : collect([]);
+        $memberRank = $user ? $user->member_rank : 'M-NULL';
+        $expressDiscountPercent = $user ? $user->express_shipping_discount_percent : 0;
 
-        return view('shop.checkout', compact('cart', 'user', 'addresses'));
+        return view('shop.checkout', compact('cart', 'user', 'addresses', 'memberRank', 'expressDiscountPercent'));
     }
 
     public function process(Request $request)
@@ -38,6 +41,27 @@ class CheckoutController extends Controller
         $cart = session('cart', []);
         if (empty($cart)) {
             return redirect()->route('cart.index')->with('error', 'Giỏ hàng trống!');
+        }
+
+        // 1. KIỂM TRA TỒN KHO TRƯỚC KHI ĐẶT HÀNG
+        foreach ($cart as $item) {
+            $product = Product::find($item['product_id'] ?? null);
+            if ($product) {
+                if ($product->stock < $item['quantity']) {
+                    return back()->with('error', "Sản phẩm '{$product->name}' trong kho chỉ còn {$product->stock} chiếc, không đủ số lượng bạn yêu cầu!");
+                }
+
+                // Kiểm tra thêm tồn kho của biến thể (nếu có)
+                if (!empty($item['version']) || !empty($item['color'])) {
+                    $variant = $product->variants()
+                        ->where('version_name', $item['version'] ?? '')
+                        ->where('color_name', $item['color'] ?? '')
+                        ->first();
+                    if ($variant && $variant->stock < $item['quantity']) {
+                        return back()->with('error', "Phiên bản '{$variant->version_name} - {$variant->color_name}' của sản phẩm '{$product->name}' chỉ còn {$variant->stock} chiếc!");
+                    }
+                }
+            }
         }
 
         $shippingAddress = $request->shipping_address;
@@ -72,9 +96,30 @@ class CheckoutController extends Controller
                 }
             }
 
+            $shippingCouponSession = session('shipping_coupon');
+            $shippingDiscountAmount = 0;
+            $shippingCouponModel = null;
+
+            $user = $request->user();
+            $expressDiscountPercent = $user ? $user->express_shipping_discount_percent : 0;
             $shippingSpeed = $request->input('shipping_speed', 'normal');
+
             $baseShippingFee = ($subtotal - $discountAmount >= 300000 || $subtotal == 0) ? 0 : 30000;
-            $shippingFee = ($shippingSpeed === 'express') ? 120000 : $baseShippingFee;
+
+            if ($shippingSpeed === 'express') {
+                $rawExpressFee = 120000 - (120000 * $expressDiscountPercent / 100);
+                if ($shippingCouponSession) {
+                    $shippingCouponModel = Coupon::where('code', $shippingCouponSession['code'])->first();
+                    if ($shippingCouponModel) {
+                        $shippingDiscountAmount = ($shippingCouponModel->type === 'percent')
+                            ? ($rawExpressFee * $shippingCouponModel->value) / 100
+                            : $shippingCouponModel->value;
+                    }
+                }
+                $shippingFee = max(0, $rawExpressFee - $shippingDiscountAmount);
+            } else {
+                $shippingFee = $baseShippingFee;
+            }
 
             $totalPrice = max(0, $subtotal - $discountAmount + $shippingFee);
 
@@ -92,6 +137,7 @@ class CheckoutController extends Controller
                 'total_price' => $totalPrice,
             ]);
 
+            // 2. TẠO ORDER ITEM & TRỪ TỒN KHO TỰ ĐỘNG
             foreach ($cart as $item) {
                 OrderItem::create([
                     'order_id' => $order->id,
@@ -103,34 +149,51 @@ class CheckoutController extends Controller
                     'quantity' => $item['quantity'],
                     'total' => $item['price'] * $item['quantity'],
                 ]);
+
+                // Trừ tồn kho sản phẩm chính
+                if (!empty($item['product_id'])) {
+                    $prod = Product::find($item['product_id']);
+                    if ($prod) {
+                        $prod->decrement('stock', $item['quantity']);
+
+                        // Trừ tồn kho biến thể tương ứng (nếu có)
+                        $variant = $prod->variants()
+                            ->where('version_name', $item['version'] ?? '')
+                            ->where('color_name', $item['color'] ?? '')
+                            ->first();
+                        if ($variant) {
+                            $variant->decrement('stock', $item['quantity']);
+                        }
+                    }
+                }
             }
 
             if ($couponModel) {
                 $couponModel->increment('used_count');
             }
+            if ($shippingCouponModel) {
+                $shippingCouponModel->increment('used_count');
+            }
 
-            // Gửi thông báo đặt hàng thành công
             NotificationService::send(
                 $order->user_id,
                 'order',
                 'Đặt hàng thành công #' . $order->order_code,
-                'Đơn hàng #' . $order->order_code . ' trị giá ' . number_format($order->total_price, 0, ',', '.') . '₫ của bạn đã được tiếp nhận.',
+                'Đơn hàng #' . $order->order_code . ' trị giá ' . number_format($order->total_price, 0, ',', '.') . '₫ (Ưu đãi hạng ' . ($user->member_rank ?? 'M-NULL') . ') của bạn đã được tiếp nhận.',
                 route('profile.orders')
             );
 
             DB::commit();
 
-            // 1. Chuyển hướng Cổng VNPay
             if ($request->payment_method === 'VNPAY') {
                 $vnpayUrl = VNPayService::createPaymentUrl($order);
-                session()->forget(['cart', 'coupon']);
+                session()->forget(['cart', 'coupon', 'shipping_coupon']);
                 return redirect()->away($vnpayUrl);
             }
 
-            // 2. Chuyển hướng Cổng ZaloPay Sandbox
             if ($request->payment_method === 'ZALOPAY') {
                 $zaloPayUrl = ZaloPayService::createPaymentUrl($order);
-                session()->forget(['cart', 'coupon']);
+                session()->forget(['cart', 'coupon', 'shipping_coupon']);
 
                 if ($zaloPayUrl) {
                     return redirect()->away($zaloPayUrl);
@@ -139,8 +202,7 @@ class CheckoutController extends Controller
                 return redirect()->route('profile.orders')->with('error', 'Không thể tạo phiên thanh toán ZaloPay Sandbox.');
             }
 
-            // 3. Mặc định COD
-            session()->forget(['cart', 'coupon']);
+            session()->forget(['cart', 'coupon', 'shipping_coupon']);
 
             return redirect()->route('checkout.success')->with([
                 'success' => 'Đặt hàng thành công!',
@@ -153,7 +215,6 @@ class CheckoutController extends Controller
         }
     }
 
-    // Callback VNPay
     public function vnpayCallback(Request $request)
     {
         $vnp_ResponseCode = $request->vnp_ResponseCode;
@@ -182,14 +243,11 @@ class CheckoutController extends Controller
         return redirect()->route('profile.orders')->with('error', 'Giao dịch thanh toán VNPay không thành công hoặc đã bị hủy.');
     }
 
-    // Callback ZaloPay
     public function zaloPayCallback(Request $request)
     {
         $status = $request->input('status');
-        $apptransid = $request->input('apptransid');
         $userId = Auth::id();
 
-        // Tìm đơn hàng mới nhất đang chờ thanh toán qua ZALOPAY của user hiện tại
         $order = Order::where('user_id', $userId)
             ->where('payment_method', 'ZALOPAY')
             ->latest()

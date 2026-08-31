@@ -4,12 +4,34 @@
         foreach(session('cart', []) as $ci) {
             $subtotal += $ci['price'] * $ci['quantity'];
         }
+        
+        // 1. Voucher giảm đơn hàng
         $coupon = session('coupon');
         $discount = 0;
         if ($coupon) {
             $discount = ($coupon['type'] === 'percent') ? ($subtotal * $coupon['value']) / 100 : $coupon['value'];
         }
+
+        // 2. Phí ship cơ bản
         $baseShipping = ($subtotal - $discount >= 300000 || $subtotal == 0) ? 0 : 30000;
+
+        // 3. Ưu đãi Rank & Voucher Giảm Phí Ship Siêu Tốc
+        $userRank = Auth::user()->member_rank ?? 'M-NULL';
+        $expressDiscountPercent = Auth::user()->express_shipping_discount_percent ?? 0;
+        
+        // Giá ship hỏa tốc sau khi giảm theo Rank
+        $rawExpressFee = 120000 - (120000 * $expressDiscountPercent / 100);
+
+        // Trừ tiếp Voucher Giảm Ship nếu có
+        $shippingCoupon = session('shipping_coupon');
+        $shippingCouponDiscount = 0;
+        if ($shippingCoupon) {
+            $shippingCouponDiscount = ($shippingCoupon['type'] === 'percent') 
+                ? ($rawExpressFee * $shippingCoupon['value']) / 100 
+                : $shippingCoupon['value'];
+        }
+
+        $finalExpressFee = max(0, $rawExpressFee - $shippingCouponDiscount);
     @endphp
 
     <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8 text-white space-y-6"
@@ -17,8 +39,12 @@
              deliveryMethod: 'delivery', 
              shippingSpeed: 'normal', 
              baseShip: {{ $baseShipping }},
+             expressShip: {{ $finalExpressFee }},
+             expressDiscountPercent: {{ $expressDiscountPercent }},
+             shippingCouponDiscount: {{ $shippingCouponDiscount }},
+             userRank: '{{ $userRank }}',
              get shippingFee() {
-                 return this.shippingSpeed === 'express' ? 120000 : this.baseShip;
+                 return this.shippingSpeed === 'express' ? this.expressShip : this.baseShip;
              },
              subtotal: {{ $subtotal }},
              discount: {{ $discount }},
@@ -47,7 +73,12 @@
                 
                 <!-- Thông tin khách hàng & Email nhận hóa đơn -->
                 <div class="bg-slate-900 border border-slate-800 rounded-3xl p-6 shadow-xl space-y-4">
-                    <h2 class="font-bold text-sm text-white border-b border-slate-800 pb-3">👤 Thông Tin Khách Hàng</h2>
+                    <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                        <h2 class="font-bold text-sm text-white">👤 Thông Tin Khách Hàng</h2>
+                        <span class="px-2.5 py-0.5 rounded-full bg-rose-500/10 border border-rose-500/20 text-rose-400 font-mono font-bold text-xs">
+                            Hạng: {{ $userRank }}
+                        </span>
+                    </div>
                     
                     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
                         <div>
@@ -137,17 +168,26 @@
                                 <span class="font-mono font-bold text-emerald-400" x-text="baseShip === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(baseShip) + '₫'"></span>
                             </label>
 
-                            <!-- Giao siêu tốc (+120k) -->
+                            <!-- Giao siêu tốc (Áp dụng đồng thời Rank + Voucher Ship) -->
                             <label class="flex items-center justify-between p-3.5 bg-slate-950 border rounded-2xl cursor-pointer transition"
                                    :class="shippingSpeed === 'express' ? 'border-rose-500 bg-rose-950/20' : 'border-slate-800'">
                                 <div class="flex items-center gap-3">
                                     <input type="radio" name="shipping_speed" value="express" x-model="shippingSpeed" class="text-rose-600">
                                     <div>
-                                        <span class="font-bold text-white block">⚡ Giao siêu tốc (Hỏa tốc)</span>
+                                        <span class="font-bold text-white flex items-center gap-2">
+                                            <span>⚡ Giao siêu tốc (Hỏa tốc 2 giờ)</span>
+                                            @if($shippingCoupon)
+                                                <span class="px-2 py-0.5 rounded-full bg-cyan-500/20 text-cyan-300 text-[10px] font-bold">Voucher: {{ $shippingCoupon['code'] }}</span>
+                                            @endif
+                                            <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold" x-text="'Rank ' + userRank + ' (-' + expressDiscountPercent + '%)'"></span>
+                                        </span>
                                         <span class="text-[11px] text-slate-400">Giao nhanh trong vòng 2 giờ tận tay</span>
                                     </div>
                                 </div>
-                                <span class="font-mono font-bold text-rose-400">+120.000₫</span>
+                                <div class="text-right font-mono">
+                                    <span class="text-xs text-slate-500 line-through mr-1">120.000₫</span>
+                                    <span class="font-bold text-rose-400" x-text="expressShip === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(expressShip) + '₫'"></span>
+                                </div>
                             </label>
                         </div>
                     </div>
@@ -193,7 +233,6 @@
                     <h2 class="font-bold text-sm text-white border-b border-slate-800 pb-3">💳 Chọn Phương Thức Thanh Toán</h2>
                     
                     <div class="space-y-3">
-                        <!-- COD -->
                         <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-rose-500 transition">
                             <input type="radio" name="payment_method" value="COD" checked class="text-rose-600 bg-slate-900 border-slate-700">
                             <div>
@@ -202,7 +241,6 @@
                             </div>
                         </label>
 
-                        <!-- VNPay -->
                         <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-rose-500 transition">
                             <input type="radio" name="payment_method" value="VNPAY" class="text-rose-600 bg-slate-900 border-slate-700">
                             <div>
@@ -214,7 +252,6 @@
                             </div>
                         </label>
 
-                        <!-- ZaloPay -->
                         <label class="flex items-center gap-3 p-3.5 bg-slate-950 border border-slate-800 rounded-2xl cursor-pointer hover:border-blue-500 transition">
                             <input type="radio" name="payment_method" value="ZALOPAY" class="text-blue-600 bg-slate-900 border-slate-700">
                             <div>
@@ -258,15 +295,18 @@
                             <span class="text-slate-400">Tổng tiền hàng:</span>
                             <span class="font-mono font-bold text-white">{{ number_format($subtotal, 0, ',', '.') }}₫</span>
                         </div>
+                        
                         @if($coupon)
                             <div class="flex justify-between text-emerald-400">
-                                <span>Giảm giá trực tiếp ({{ $coupon['code'] }}):</span>
+                                <span>Giảm giá đơn hàng ({{ $coupon['code'] }}):</span>
                                 <span class="font-mono font-bold">-{{ number_format($discount, 0, ',', '.') }}₫</span>
                             </div>
                         @endif
+
                         <div class="flex justify-between items-center">
                             <span class="text-slate-400">Phí vận chuyển:</span>
-                            <span class="font-mono font-bold text-emerald-400" 
+                            <span class="font-mono font-bold" 
+                                  :class="shippingFee === 0 ? 'text-emerald-400' : 'text-amber-400'"
                                   x-text="shippingFee === 0 ? 'Miễn phí' : new Intl.NumberFormat('vi-VN').format(shippingFee) + '₫'">
                             </span>
                         </div>
@@ -280,16 +320,17 @@
                                   x-text="new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(finalTotal)">
                             </span>
                         </div>
-                        @if($discount > 0)
-                            <div class="flex justify-between text-[11px] text-emerald-400 pt-1">
-                                <span>Bạn đã tiết kiệm được:</span>
-                                <span class="font-mono font-bold">-{{ number_format($discount, 0, ',', '.') }}₫</span>
-                            </div>
-                        @endif
-                        <span class="text-[10px] text-slate-500 block text-right">(Đã bao gồm VAT và phí ship)</span>
+                        
+                        @php
+                            $totalSaved = $discount;
+                        @endphp
+                        <div class="flex justify-between text-[11px] text-emerald-400 pt-1" x-show="discount > 0 || (shippingSpeed === 'express' && expressShip < 120000)">
+                            <span>Tiết kiệm được:</span>
+                            <span class="font-mono font-bold" x-text="new Intl.NumberFormat('vi-VN').format(discount + (shippingSpeed === 'express' ? (120000 - expressShip) : 0)) + '₫'"></span>
+                        </div>
+                        <span class="text-[10px] text-slate-500 block text-right">(Đã bao gồm VAT và ưu đãi Rank + Voucher)</span>
                     </div>
 
-                    <!-- Nút Submit có trạng thái Loading chống Double Submit -->
                     <button type="submit" 
                             :disabled="isSubmitting"
                             :class="isSubmitting ? 'opacity-60 cursor-not-allowed' : 'hover:from-rose-500 hover:to-red-400 cursor-pointer'"
@@ -297,26 +338,8 @@
                         <span x-show="!isSubmitting">XÁC NHẬN ĐẶT HÀNG</span>
                         <span x-show="isSubmitting" style="display: none;">ĐANG KẾT NỐI THANH TOÁN...</span>
                     </button>
-
-                    <p class="text-[10px] text-slate-500 text-center leading-relaxed">
-                        Bằng việc đặt hàng, bạn đồng ý với <a href="#" class="text-rose-400 underline">Điều khoản sử dụng</a> của TECHZONE.
-                    </p>
                 </div>
             </div>
         </form>
-
-        @if (session('error'))
-            <div class="bg-rose-950/80 border border-rose-800 text-rose-300 p-4 rounded-2xl text-xs font-semibold">
-                {{ session('error') }}
-            </div>
-        @endif
-        @if ($errors->any())
-            <div class="bg-rose-950/80 border border-rose-800 text-rose-300 p-4 rounded-2xl text-xs space-y-1">
-                <span class="font-bold">Vui lòng kiểm tra lại thông tin:</span>
-                @foreach ($errors->all() as $error)
-                    <div>- {{ $error }}</div>
-                @endforeach
-            </div>
-        @endif
     </div>
 </x-store-layout>

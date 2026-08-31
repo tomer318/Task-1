@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\ShopController;
+use App\Http\Controllers\ChatbotController;
 use App\Http\Controllers\CartController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\UserAddressController;
@@ -126,5 +127,7 @@ Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->grou
     Route::get('/order-satisfaction', [ReviewManagementController::class, 'orderSatisfaction'])->name('order.satisfaction');
     Route::post('/order-satisfaction/{review}/reply', [ReviewManagementController::class, 'replyOrderReview'])->name('order.satisfaction.reply');
 });
+// 7. TechBot AI Assistant Route
+Route::post('/techbot/chat', [ChatbotController::class, 'message'])->name('techbot.chat');
 
 require __DIR__.'/auth.php';
