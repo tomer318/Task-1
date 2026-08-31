@@ -2,12 +2,14 @@
     open: false,
     inputMessage: '',
     loading: false,
+    chatMode: 'bot', // 'bot' hoặc 'agent'
+    pollingInterval: null,
     messages: [
         {
             sender: 'bot',
-            text: 'Chào bạn! Mình là **TechBot** - Trợ lý công nghệ TechZone 🤖.\nMình có thể hỗ trợ bạn tìm sản phẩm, báo giá, kiểm tra tình trạng đơn hàng hoặc săn mã voucher khuyến mãi nè!',
+            text: 'Chào bạn! Mình là **TechBot** - Trợ lý công nghệ TechZone 🤖.\nBạn cần hỏi nhanh sản phẩm hay muốn trò chuyện trực tiếp với nhân viên CSKH nè?',
             products: [],
-            suggestions: ['Tìm Laptop Gaming', 'Điện thoại Flagship', 'Voucher giảm giá', 'Phí vận chuyển']
+            suggestions: ['Gặp nhân viên tư vấn', 'Tìm Laptop Gaming', 'Voucher giảm giá', 'Kiểm tra đơn hàng']
         }
     ],
     scrollToBottom() {
@@ -21,9 +23,65 @@
             }
         });
     },
+    initPolling() {
+        // Tự động kiểm tra tin nhắn mới từ Admin mỗi 3 giây khi đang ở chế độ agent
+        this.pollingInterval = setInterval(() => {
+            if (this.open && this.chatMode === 'agent') {
+                this.fetchMessages();
+            }
+        }, 3000);
+    },
+    fetchMessages() {
+        fetch('{{ route('chat.messages') }}')
+            .then(res => res.json())
+            .then(data => {
+                this.chatMode = data.mode;
+                if (data.messages && data.messages.length > 0) {
+                    let formatted = data.messages.map(m => ({
+                        sender: m.sender,
+                        text: m.message,
+                        products: [],
+                        suggestions: []
+                    }));
+                    if (formatted.length > this.messages.length) {
+                        this.messages = formatted;
+                        this.scrollToBottom();
+                    }
+                }
+            });
+    },
+    connectAgent() {
+        this.loading = true;
+        fetch('{{ route('chat.request_agent') }}', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': '{{ csrf_token() }}'
+            }
+        })
+        .then(res => res.json())
+        .then(data => {
+            this.loading = false;
+            this.chatMode = 'agent';
+            this.messages.push({
+                sender: 'bot',
+                text: '🔔 **Đã chuyển sang chế độ kết nối Nhân viên CSKH.** Bạn hãy gửi câu hỏi hoặc yêu cầu cần tư vấn bên dưới nhé!',
+                products: [],
+                suggestions: []
+            });
+            this.scrollToBottom();
+            this.initPolling();
+        });
+    },
     sendMessage(customText = null) {
         let msg = customText || this.inputMessage.trim();
         if (!msg || this.loading) return;
+
+        if (msg === 'Gặp nhân viên tư vấn') {
+            this.connectAgent();
+            this.inputMessage = '';
+            return;
+        }
 
         this.messages.push({
             sender: 'user',
@@ -36,6 +94,26 @@
         this.loading = true;
         this.scrollToBottom();
 
+        // 1. Nếu đang chat với nhân viên CSKH
+        if (this.chatMode === 'agent') {
+            fetch('{{ route('chat.send') }}', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '{{ csrf_token() }}',
+                    'Accept': 'application/json'
+                },
+                body: JSON.stringify({ message: msg })
+            })
+            .then(res => res.json())
+            .then(() => {
+                this.loading = false;
+                this.scrollToBottom();
+            });
+            return;
+        }
+
+        // 2. Nếu đang chat với TechBot AI
         fetch('{{ route('techbot.chat') }}', {
             method: 'POST',
             headers: {
@@ -56,7 +134,7 @@
             });
             this.scrollToBottom();
         })
-        .catch(err => {
+        .catch(() => {
             this.loading = false;
             this.messages.push({
                 sender: 'bot',
@@ -69,7 +147,7 @@
     }
 }" style="position: fixed; bottom: 24px; right: 24px; z-index: 99999; display: flex; flex-direction: column; align-items: flex-end;">
 
-    <!-- 1. POPUP KHUNG CHAT TECHBOT -->
+    <!-- 1. POPUP KHUNG CHAT TECHBOT & LIVE CHAT -->
     <div x-show="open" 
          x-transition:enter="transition ease-out duration-300 transform origin-bottom-right"
          x-transition:enter-start="opacity-0 translate-y-6 scale-90"
@@ -77,7 +155,7 @@
          x-transition:leave="transition ease-in duration-200 transform origin-bottom-right"
          x-transition:leave-start="opacity-100 translate-y-0 scale-100"
          x-transition:leave-end="opacity-0 translate-y-6 scale-90"
-         style="width: 380px; max-width: calc(100vw - 48px); height: 530px; display: none;"
+         style="width: 380px; max-width: calc(100vw - 48px); height: 540px; display: none;"
          class="bg-slate-900/95 border border-slate-800 rounded-3xl shadow-2xl flex flex-col overflow-hidden backdrop-blur-xl mb-3">
         
         <!-- Header Chatbot -->
@@ -86,22 +164,32 @@
                 <div class="relative">
                     <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-rose-600 to-orange-500 p-0.5 shadow-lg shadow-rose-600/30">
                         <div class="w-full h-full bg-slate-950 rounded-2xl flex items-center justify-center font-bold text-white text-base">
-                            🤖
+                            <span x-text="chatMode === 'agent' ? '👨‍💼' : '🤖'"></span>
                         </div>
                     </div>
                     <span class="absolute bottom-0 right-0 w-3 h-3 bg-emerald-500 border-2 border-slate-900 rounded-full"></span>
                 </div>
                 <div>
                     <h3 class="font-bold text-sm text-white flex items-center gap-1.5">
-                        TechBot Assistant
-                        <span class="px-1.5 py-0.2 bg-rose-500/20 text-rose-400 font-mono text-[9px] rounded font-semibold border border-rose-500/30">AI</span>
+                        <span x-text="chatMode === 'agent' ? 'Tư Vấn Viên TechZone' : 'TechBot Assistant'"></span>
+                        <span class="px-1.5 py-0.2 rounded font-mono text-[9px] font-semibold border"
+                              :class="chatMode === 'agent' ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border-rose-500/30'"
+                              x-text="chatMode === 'agent' ? 'LIVE' : 'AI'"></span>
                     </h3>
-                    <p class="text-[11px] text-slate-400">Tư vấn mua sắm 24/7</p>
+                    <p class="text-[11px] text-slate-400" x-text="chatMode === 'agent' ? 'Đang kết nối nhân viên trực tuyến' : 'Tự động phản hồi 24/7'"></p>
                 </div>
             </div>
-            <button @click="open = false" type="button" class="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer text-sm font-bold">
-                ✕
-            </button>
+
+            <div class="flex items-center gap-1">
+                <!-- Nút chuyển sang Agent nếu đang là Bot -->
+                <button x-show="chatMode === 'bot'" @click="connectAgent()" type="button" title="Gặp nhân viên tư vấn"
+                        class="p-2 bg-slate-950 border border-slate-800 hover:border-emerald-500 text-emerald-400 hover:text-white rounded-xl text-xs font-semibold transition cursor-pointer">
+                    👨‍💼
+                </button>
+                <button @click="open = false" type="button" class="w-8 h-8 rounded-xl bg-slate-950 border border-slate-800 hover:border-rose-500 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer text-sm font-bold">
+                    ✕
+                </button>
+            </div>
         </div>
 
         <!-- Khung tin nhắn cuộn -->
@@ -111,10 +199,11 @@
                 <div class="space-y-2">
                     <div class="flex gap-2.5 items-end" :class="msg.sender === 'user' ? 'justify-end' : 'justify-start'">
                         
-                        <!-- Avatar bot -->
-                        <template x-if="msg.sender === 'bot'">
-                            <div class="w-7 h-7 rounded-xl bg-gradient-to-tr from-rose-600 to-orange-500 text-white flex items-center justify-center shrink-0 text-xs shadow-md">
-                                🤖
+                        <!-- Avatar -->
+                        <template x-if="msg.sender !== 'user'">
+                            <div class="w-7 h-7 rounded-xl text-white flex items-center justify-center shrink-0 text-xs shadow-md"
+                                 :class="msg.sender === 'admin' ? 'bg-emerald-600' : 'bg-gradient-to-tr from-rose-600 to-orange-500'">
+                                <span x-text="msg.sender === 'admin' ? '👨‍💼' : '🤖'"></span>
                             </div>
                         </template>
 
@@ -122,7 +211,9 @@
                         <div class="p-3.5 rounded-2xl max-w-[84%] leading-relaxed space-y-2"
                              :class="msg.sender === 'user' 
                                  ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white rounded-br-none shadow-md shadow-rose-600/20 font-medium' 
-                                 : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none shadow-lg'">
+                                 : (msg.sender === 'admin' 
+                                     ? 'bg-slate-950 border border-emerald-500/40 text-slate-200 rounded-bl-none shadow-lg' 
+                                     : 'bg-slate-950 border border-slate-800 text-slate-200 rounded-bl-none shadow-lg')">
                             
                             <div class="whitespace-pre-line" x-html="msg.text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/`([^`]+)`/g, '<code class=\'bg-slate-900 px-1 py-0.5 rounded text-rose-400 font-mono\'>$1</code>')"></div>
 
@@ -154,18 +245,19 @@
                 </div>
             </template>
 
-            <!-- Typing loading -->
+            <!-- Typing indicator -->
             <div x-show="loading" class="flex gap-2 items-center text-slate-400 text-[11px] pl-9" style="display: none;">
                 <span class="inline-block w-2 h-2 rounded-full bg-rose-500 animate-bounce"></span>
                 <span class="inline-block w-2 h-2 rounded-full bg-rose-500 animate-bounce [animation-delay:0.2s]"></span>
                 <span class="inline-block w-2 h-2 rounded-full bg-rose-500 animate-bounce [animation-delay:0.4s]"></span>
-                <span class="text-slate-500 ml-1">TechBot đang soạn câu trả lời...</span>
+                <span class="text-slate-500 ml-1" x-text="chatMode === 'agent' ? 'Đang gửi tin nhắn...' : 'TechBot đang soạn câu trả lời...'"></span>
             </div>
         </div>
 
-        <!-- Ô nhập & Nút Gửi nằm gọn bên trong khung chat -->
+        <!-- Ô nhập tin nhắn -->
         <form @submit.prevent="sendMessage()" class="p-3 bg-slate-950 border-t border-slate-800 flex items-center gap-2 shrink-0">
-            <input type="text" x-model="inputMessage" placeholder="Hỏi TechBot về máy gaming, đơn hàng, ship..." 
+            <input type="text" x-model="inputMessage" 
+                   :placeholder="chatMode === 'agent' ? 'Nhập tin nhắn cho nhân viên tư vấn...' : 'Hỏi TechBot về máy gaming, đơn hàng, ship...'" 
                    class="flex-1 bg-slate-900 border border-slate-800 focus:border-rose-500 focus:ring-1 focus:ring-rose-500 rounded-2xl px-4 py-2 text-xs text-white placeholder-slate-500 focus:outline-none transition">
             
             <button type="submit" 
@@ -181,12 +273,12 @@
         </form>
     </div>
 
-    <!-- 2. NÚT TRÒN GỌN GÀNG GÓC PHẢI DƯỚI MÀN HÌNH -->
+    <!-- 2. NÚT TRÒN BẬT / TẮT WIDGET -->
     <button @click="open = !open; if(open) scrollToBottom();" 
             type="button"
             class="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 text-white font-bold text-xs shadow-2xl shadow-rose-600/40 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer border border-rose-400/30 group">
-        <span class="text-base group-hover:rotate-12 transition-transform duration-300">🤖</span>
-        <span class="font-extrabold tracking-wide">Chat với TechBot</span>
+        <span class="text-base group-hover:rotate-12 transition-transform duration-300">💬</span>
+        <span class="font-extrabold tracking-wide">Hỗ trợ trực tuyến</span>
         <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-400 border-2 border-slate-950"></span>

@@ -17,12 +17,19 @@ use App\Http\Controllers\Admin\CouponController;
 use App\Http\Controllers\Admin\UserController;
 use App\Http\Controllers\Admin\ReviewManagementController;
 use App\Http\Controllers\Admin\ReturnManagementController;
+use App\Http\Controllers\LiveChatController;
+use App\Http\Controllers\Admin\LiveChatManagementController;
 use App\Models\Product;
 use App\Models\Category;
 use App\Models\User;
 use App\Models\Order;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
+
+// LiveChat phía Khách hàng
+Route::get('/live-chat/messages', [LiveChatController::class, 'getMessages'])->name('chat.messages');
+Route::post('/live-chat/send', [LiveChatController::class, 'sendMessage'])->name('chat.send');
+Route::post('/live-chat/request-agent', [LiveChatController::class, 'requestAgent'])->name('chat.request_agent');
 
 // 1. Cửa hàng
 Route::get('/', [ShopController::class, 'index'])->name('home');
@@ -126,6 +133,12 @@ Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->grou
     Route::patch('/reviews/products/{review}/toggle', [ReviewManagementController::class, 'toggleProductReview'])->name('reviews.product.toggle');
     Route::get('/order-satisfaction', [ReviewManagementController::class, 'orderSatisfaction'])->name('order.satisfaction');
     Route::post('/order-satisfaction/{review}/reply', [ReviewManagementController::class, 'replyOrderReview'])->name('order.satisfaction.reply');
+    
+    // Quản lý Live Chat CSKH
+    Route::get('/live-chat', [LiveChatManagementController::class, 'index'])->name('chat.index');
+    Route::get('/live-chat/{session}/messages', [LiveChatManagementController::class, 'getSessionMessages'])->name('chat.session.messages');
+    Route::post('/live-chat/{session}/reply', [LiveChatManagementController::class, 'reply'])->name('chat.reply');
+    Route::post('/live-chat/{session}/close', [LiveChatManagementController::class, 'close'])->name('chat.close');
 });
 // 7. TechBot AI Assistant Route
 Route::post('/techbot/chat', [ChatbotController::class, 'message'])->name('techbot.chat');

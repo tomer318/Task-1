@@ -99,6 +99,23 @@
                     </div>
                 </a>
 
+                <!-- Live Chat CSKH Trực Tuyến -->
+                <a href="{{ route('admin.chat.index') }}" 
+                   class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.chat.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
+                    <div class="flex items-center gap-3">
+                        <svg class="w-4 h-4 {{ request()->routeIs('admin.chat.*') ? 'text-white' : 'text-slate-500' }}" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg>
+                        Live Chat CSKH
+                    </div>
+                    @php
+                        $waitingChatCount = \App\Models\ChatSession::where('mode', 'agent')->count();
+                    @endphp
+                    @if($waitingChatCount > 0)
+                        <span class="text-[9px] px-1.5 py-0.5 rounded {{ request()->routeIs('admin.chat.*') ? 'bg-white/20 text-white' : 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40' }}">
+                            {{ $waitingChatCount }} chờ
+                        </span>
+                    @endif
+                </a>
+
                 <!-- Quản Lý Đổi / Trả Hàng -->
                 <a href="{{ route('admin.returns.index') }}" 
                    class="flex items-center justify-between px-3 py-2.5 rounded-xl transition {{ request()->routeIs('admin.returns.*') ? 'bg-gradient-to-r from-rose-600 to-red-500 text-white font-bold shadow-lg shadow-rose-600/30' : 'text-slate-400 hover:text-white hover:bg-slate-800/60' }}">
