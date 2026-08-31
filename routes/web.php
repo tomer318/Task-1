@@ -143,4 +143,17 @@ Route::middleware(['auth', 'role:Admin'])->prefix('admin')->name('admin.')->grou
 // 7. TechBot AI Assistant Route
 Route::post('/techbot/chat', [ChatbotController::class, 'message'])->name('techbot.chat');
 
+// Route hỗ trợ chạy migrate & seeder trực tiếp trên trình duyệt
+Route::get('/admin/setup-db', function () {
+    try {
+        \Illuminate\Support\Facades\Artisan::call('migrate:fresh', [
+            '--force' => true,
+            '--seed' => true
+        ]);
+        return '<h2 style="color: green; font-family: sans-serif; padding: 20px;">✅ Đã khởi tạo lại toàn bộ Database và nạp dữ liệu mẫu thành công! <br><br><a href="/" style="display:inline-block; padding:10px 20px; background:#e11d48; color:#fff; text-decoration:none; border-radius:8px;">Về Trang Chủ Xem Sản Phẩm</a></h2>';
+    } catch (\Exception $e) {
+        return '<h2 style="color: red; font-family: sans-serif; padding: 20px;">❌ Lỗi: ' . $e->getMessage() . '</h2>';
+    }
+});
+
 require __DIR__.'/auth.php';
