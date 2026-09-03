@@ -30,6 +30,7 @@ use Illuminate\Support\Facades\Route;
 Route::get('/live-chat/messages', [LiveChatController::class, 'getMessages'])->name('chat.messages');
 Route::post('/live-chat/send', [LiveChatController::class, 'sendMessage'])->name('chat.send');
 Route::post('/live-chat/request-agent', [LiveChatController::class, 'requestAgent'])->name('chat.request_agent');
+Route::get('/api/search-suggestions', [ShopController::class, 'searchSuggestions'])->name('api.search.suggestions');
 
 // 1. Cửa hàng
 Route::get('/', [ShopController::class, 'index'])->name('home');
@@ -93,6 +94,9 @@ Route::middleware('auth')->group(function () {
     Route::get('/profile/wishlist', [ProfileController::class, 'wishlist'])->name('profile.wishlist');
     Route::post('/wishlist/toggle/{product}', [\App\Http\Controllers\WishlistController::class, 'toggle'])->name('wishlist.toggle');
     Route::delete('/wishlist/{product}', [\App\Http\Controllers\WishlistController::class, 'destroy'])->name('wishlist.destroy');
+
+    // Xuất hóa đơn PDF
+    Route::get('/orders/{id}/invoice', [OrderActionController::class, 'downloadInvoice'])->name('orders.invoice');
 });
 
 // 6. Quản trị Admin

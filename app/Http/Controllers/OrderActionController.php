@@ -6,6 +6,8 @@ use Illuminate\Http\Request;
 use App\Models\Order;
 use App\Models\OrderCancellation;
 use App\Models\ReturnRequest;
+use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Auth;
 
 class OrderActionController extends Controller
 {
@@ -104,5 +106,25 @@ class OrderActionController extends Controller
         ]);
 
         return back()->with('success', 'Yêu cầu đổi/trả đã được gửi! Đội ngũ TECHZONE sẽ xem xét và phản hồi sớm nhất.');
+    }
+
+    // 3. Xuất hóa đơn bán hàng PDF
+    public function downloadInvoice(int|string $id)
+    {
+        /** @var \App\Models\User $user */
+        $user = Auth::user();
+
+        $query = Order::with(['items.product', 'user']);
+
+        if (!$user || !$user->hasRole('Admin')) {
+            $query->where('user_id', Auth::id());
+        }
+
+        $order = $query->findOrFail($id);
+
+        $pdf = Pdf::loadView('invoices.order-invoice', compact('order'))
+                  ->setPaper('a4', 'portrait');
+
+        return $pdf->download('Hoa-don-TechZone-' . ($order->order_code ?? $order->id) . '.pdf');
     }
 }

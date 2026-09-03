@@ -273,13 +273,23 @@
         </form>
     </div>
 
-    <!-- 2. NÚT TRÒN BẬT / TẮT WIDGET -->
+    <!-- 2. NÚT TRÒN BẬT / TẮT WIDGET (HOVER MỞ RỘNG) -->
     <button @click="open = !open; if(open) scrollToBottom();" 
             type="button"
-            class="relative flex items-center gap-2.5 px-4 py-3 rounded-full bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 text-white font-bold text-xs shadow-2xl shadow-rose-600/40 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer border border-rose-400/30 group">
-        <span class="text-base group-hover:rotate-12 transition-transform duration-300">💬</span>
-        <span class="font-extrabold tracking-wide">Hỗ trợ trực tuyến</span>
-        <span class="absolute -top-1 -right-1 flex h-3.5 w-3.5">
+            class="relative flex items-center h-14 w-14 hover:w-48 px-4 rounded-full bg-gradient-to-r from-rose-600 via-red-600 to-orange-500 text-white font-bold text-xs shadow-2xl shadow-rose-600/40 hover:scale-105 active:scale-95 transition-all duration-300 ease-in-out cursor-pointer border border-rose-400/30 group overflow-hidden">
+        
+        <!-- Icon Chat -->
+        <span class="text-xl shrink-0 group-hover:rotate-12 transition-transform duration-300 select-none">
+            💬
+        </span>
+
+        <!-- Nhãn chữ: Mặc định ẩn/thu hẹp, khi hover mở rộng ra -->
+        <span class="max-w-0 opacity-0 group-hover:max-w-xs group-hover:opacity-100 group-hover:ml-2.5 transition-all duration-300 ease-in-out whitespace-nowrap overflow-hidden font-extrabold tracking-wide">
+            Hỗ trợ trực tuyến
+        </span>
+
+        <!-- Chấm xanh Online trạng thái -->
+        <span class="absolute top-1 right-1 flex h-3.5 w-3.5 pointer-events-none">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-rose-400 opacity-75"></span>
             <span class="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-400 border-2 border-slate-950"></span>
         </span>

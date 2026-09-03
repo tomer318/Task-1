@@ -9,7 +9,31 @@
         selectedLabel: 'Nhà',
         showCurrentPass: false,
         showNewPass: false,
-        showConfirmPass: false
+        showConfirmPass: false,
+        selectedOrder: null,
+
+        // Dữ liệu đơn hàng mẫu từ hệ thống
+        demoOrder: {
+            id: '{{ $user->orders->first()->id ?? 1 }}',
+            order_code: '00182S2309000983',
+            created_at: '10/09/2025 14:30',
+            status: 'Đã nhận hàng',
+            payment_method: 'VNPAY',
+            payment_status: 'Đã thanh toán',
+            total_price: 3890000,
+            shipping_fee: 0,
+            discount_amount: 0,
+            items: [
+                {
+                    product_name: 'Xiaomi Redmi Note 14 Pro 5G',
+                    version_name: '8GB/256GB',
+                    color_name: 'Xanh Dương',
+                    quantity: 1,
+                    price: 3890000,
+                    total: 3890000
+                }
+            ]
+        }
     }">
 
         <!-- Toast thông báo -->
@@ -247,10 +271,15 @@
                                             <span class="inline-block px-1.5 py-0.2 bg-rose-500/10 text-rose-400 text-[8px] font-bold rounded">Đã xuất VAT</span>
                                         </div>
                                     </div>
-                                    <div class="text-right shrink-0">
+                                    <div class="text-right shrink-0 space-y-1">
                                         <div class="text-[10px] text-slate-400">Tổng thanh toán:</div>
                                         <div class="text-xs font-mono font-extrabold text-rose-500">$389.00</div>
-                                        <button @click="tab = 'orders'" class="text-[10px] text-rose-400 hover:underline">Xem chi tiết &gt;</button>
+                                        <div class="flex items-center gap-2 justify-end pt-1">
+                                            <a :href="'/orders/' + demoOrder.id + '/invoice'" target="_blank" class="px-2 py-1 bg-slate-900 hover:bg-slate-800 border border-rose-500/50 text-rose-400 rounded-lg text-[10px] font-semibold transition inline-flex items-center gap-1">
+                                                <span>📄</span> In Hóa Đơn
+                                            </a>
+                                            <button @click="selectedOrder = demoOrder" class="text-[10px] text-slate-300 hover:text-white font-semibold">Chi tiết &gt;</button>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -303,8 +332,24 @@
                                         <div class="text-[11px] text-slate-400 font-mono mt-0.5">$389.00</div>
                                     </div>
                                 </div>
-                                <div class="text-right">
+                                <div class="text-right space-y-2">
                                     <div class="text-sm font-mono font-extrabold text-rose-500">$389.00</div>
+                                    <div class="flex items-center gap-2">
+                                        <!-- Nút In Hóa Đơn PDF ở danh sách -->
+                                        <a :href="'/orders/' + demoOrder.id + '/invoice'" 
+                                           target="_blank" 
+                                           class="px-3 py-1.5 bg-slate-900 hover:bg-slate-800 border border-rose-500/50 text-rose-400 font-bold rounded-xl text-[11px] transition flex items-center gap-1.5 shadow">
+                                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                            </svg>
+                                            <span>In Hóa Đơn</span>
+                                        </a>
+
+                                        <!-- Nút mở modal xem chi tiết -->
+                                        <button type="button" @click="selectedOrder = demoOrder" class="px-3 py-1.5 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl text-[11px] transition shadow">
+                                            Xem chi tiết &gt;
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -340,6 +385,79 @@
                     </div>
                 </div>
 
+            </div>
+        </div>
+
+        <!-- ==================== MODAL CHI TIẾT ĐƠN HÀNG VÀ IN HÓA ĐƠN PDF (5.1b) ==================== -->
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4" x-show="selectedOrder" style="display: none;">
+            <div class="bg-slate-900 border border-slate-800 w-full max-w-2xl rounded-3xl p-6 shadow-2xl space-y-5 text-xs text-white max-h-[90vh] overflow-y-auto" @click.away="selectedOrder = null">
+                <div class="flex justify-between items-center border-b border-slate-800 pb-3">
+                    <div>
+                        <h3 class="font-bold text-base text-white">Chi tiết đơn hàng: <span class="text-rose-400 font-mono" x-text="selectedOrder ? '#' + selectedOrder.order_code : ''"></span></h3>
+                        <span class="text-slate-400 text-[11px]" x-text="selectedOrder ? 'Ngày đặt: ' + selectedOrder.created_at : ''"></span>
+                    </div>
+                    <button @click="selectedOrder = null" class="text-slate-400 hover:text-white font-bold text-xl cursor-pointer">&times;</button>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div class="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-1">
+                        <span class="text-slate-400 block text-[11px]">Trạng thái đơn hàng:</span>
+                        <div class="text-rose-400 font-bold text-sm" x-text="selectedOrder ? selectedOrder.status : ''"></div>
+                    </div>
+                    <div class="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-1">
+                        <span class="text-slate-400 block text-[11px]">Tình trạng thanh toán:</span>
+                        <div class="text-emerald-400 font-bold text-sm" x-text="selectedOrder ? (selectedOrder.payment_method + ' - ' + selectedOrder.payment_status) : ''"></div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <h4 class="font-bold text-white text-xs">Danh sách sản phẩm đã đặt</h4>
+                    <div class="space-y-2">
+                        <template x-for="item in (selectedOrder ? selectedOrder.items : [])">
+                            <div class="flex items-center justify-between p-3.5 bg-slate-950 border border-slate-800 rounded-2xl">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-12 h-12 bg-slate-900 border border-slate-800 rounded-xl flex items-center justify-center shrink-0 text-xl">📱</div>
+                                    <div>
+                                        <div class="font-bold text-white uppercase text-xs" x-text="item.product_name"></div>
+                                        <div class="text-slate-400 text-[11px] mt-0.5">
+                                            Phân loại: <span class="text-rose-400" x-text="item.version_name + ' - ' + item.color_name"></span> | 
+                                            SL: <span class="font-bold text-white" x-text="item.quantity"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <span class="font-mono font-bold text-white text-sm" x-text="new Intl.NumberFormat('vi-VN').format(item.total) + '₫'"></span>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+
+                <div class="p-4 bg-slate-950 border border-slate-800 rounded-2xl space-y-2 text-xs">
+                    <div class="flex justify-between text-slate-300">
+                        <span>1. Phí vận chuyển:</span>
+                        <strong class="font-mono text-emerald-400">0₫ (Miễn phí toàn quốc)</strong>
+                    </div>
+                    <div class="pt-2 border-t border-slate-800 flex justify-between items-baseline">
+                        <span class="font-bold text-white text-sm">TỔNG TIỀN THANH TOÁN:</span>
+                        <strong class="font-mono font-black text-rose-500 text-base" x-text="selectedOrder ? new Intl.NumberFormat('vi-VN').format(selectedOrder.total_price) + '₫' : ''"></strong>
+                    </div>
+                </div>
+
+                <!-- Cụm nút hành động dưới đáy Modal -->
+                <div class="pt-2 flex flex-wrap gap-3">
+                    <!-- Nút Xuất Hóa Đơn PDF chính -->
+                    <a :href="'/orders/' + (selectedOrder ? selectedOrder.id : '') + '/invoice'" 
+                       target="_blank"
+                       class="flex-1 min-w-[150px] py-3 bg-slate-950 border border-rose-500/60 hover:bg-rose-500/10 text-rose-400 font-bold rounded-xl text-center transition flex items-center justify-center gap-2 shadow">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>In / Xuất Hóa Đơn PDF</span>
+                    </a>
+
+                    <button type="button" @click="selectedOrder = null" class="flex-1 min-w-[100px] py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl shadow transition cursor-pointer">
+                        Đóng
+                    </button>
+                </div>
             </div>
         </div>
 

@@ -110,171 +110,196 @@
             </div>
         </div>
 
-        <!-- BỘ LỌC ĐA TIÊU CHÍ TECHZONE -->
-        <div style="margin-top: 48px; margin-bottom: 24px;" class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl space-y-5">
+        <!-- BỘ LỌC ĐA TIÊU CHÍ TECHZONE (CÓ THU GỌN / TRƯỢT XUỐNG) -->
+        <div style="margin-top: 48px; margin-bottom: 24px;" 
+             x-data="{ 
+                 expanded: {{ request()->hasAny(['demand', 'price_range', 'ram', 'storage', 'brand']) ? 'true' : 'false' }} 
+             }"
+             class="bg-slate-900/90 border border-slate-800 rounded-3xl p-6 shadow-2xl transition-all duration-300">
+            
             <form action="/" method="GET" id="filterForm" class="space-y-4 text-xs">
                 
-                <!-- Hàng 1: Header bộ lọc & Sắp xếp -->
-                <div class="flex flex-wrap items-center justify-between gap-3 pb-3 border-b border-slate-800">
-                    <div class="flex items-center gap-2.5">
+                <!-- Thanh Header: Luôn luôn hiển thị -->
+                <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="flex items-center gap-2.5 cursor-pointer select-none" @click="expanded = !expanded">
                         <span class="w-8 h-8 rounded-xl bg-gradient-to-tr from-rose-600 to-orange-500 text-white flex items-center justify-center font-bold text-sm shadow-md">
                             ⚡
                         </span>
                         <div>
-                            <h2 class="font-bold text-sm text-white">Bộ Lọc Tìm Kiếm Nâng Cao</h2>
+                            <div class="flex items-center gap-2">
+                                <h2 class="font-bold text-sm text-white">Bộ Lọc Tìm Kiếm Nâng Cao</h2>
+                                <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-800 text-rose-400 font-semibold border border-slate-700" 
+                                      x-text="expanded ? 'Thu gọn ▲' : 'Bấm để lọc chi tiết ▼'"></span>
+                            </div>
                             <p class="text-[11px] text-slate-400">Chọn cấu hình, phân khúc giá và nhu cầu sử dụng thực tế</p>
                         </div>
                     </div>
 
-                    <!-- Dropdown Sắp xếp -->
-                    <div class="flex items-center gap-2">
-                        <span class="text-slate-400 font-medium">Sắp xếp:</span>
-                        <select name="sort" onchange="document.getElementById('filterForm').submit()" 
-                                class="bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer font-medium">
-                            <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Mới nhất</option>
-                            <option value="price_asc" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>Giá: Thấp đến Cao</option>
-                            <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Giá: Cao đến Thấp</option>
-                            <option value="name_asc" {{ request('sort') == 'name_asc' ? 'selected' : '' }}>Tên: A - Z</option>
-                        </select>
+                    <!-- Dropdown Sắp xếp & Nút bật tắt nhanh -->
+                    <div class="flex items-center gap-3">
+                        <div class="flex items-center gap-2">
+                            <span class="text-slate-400 font-medium">Sắp xếp:</span>
+                            <select name="sort" onchange="document.getElementById('filterForm').submit()" 
+                                    class="bg-slate-950 border border-slate-800 focus:border-rose-500 rounded-xl px-3 py-2 text-xs text-white focus:outline-none cursor-pointer font-medium">
+                                <option value="latest" {{ request('sort') == 'latest' ? 'selected' : '' }}>Mới nhất</option>
+                                <option value="price_asc" {{ request('sort') == 'price_asc' ? 'selected' : '' }}>Giá: Thấp đến Cao</option>
+                                <option value="price_desc" {{ request('sort') == 'price_desc' ? 'selected' : '' }}>Giá: Cao đến Thấp</option>
+                                <option value="name_asc" {{ request('sort') == 'name_asc' ? 'selected' : '' }}>Tên: A - Z</option>
+                            </select>
+                        </div>
+
+                        <button type="button" @click="expanded = !expanded"
+                                class="px-3 py-2 bg-slate-950 hover:bg-slate-800 border border-slate-800 text-slate-300 rounded-xl font-semibold transition">
+                            <span x-text="expanded ? 'Đóng bộ lọc' : 'Mở bộ lọc'"></span>
+                        </button>
                     </div>
                 </div>
 
-                <!-- Hàng 2: Lọc theo Nhu Cầu Nhanh (Demand Pills) -->
-                <div class="space-y-2">
-                    <span class="text-slate-400 font-semibold block">Nhu cầu sử dụng:</span>
-                    <div class="flex flex-wrap gap-2">
-                        @php $currentDemand = request('demand', ''); @endphp
-                        <label class="cursor-pointer">
-                            <input type="radio" name="demand" value="" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ empty($currentDemand) ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
-                                Tất cả nhu cầu
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="demand" value="gaming" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentDemand == 'gaming' ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
-                                🎮 Chiến Game & Đồ Họa
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="demand" value="office" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentDemand == 'office' ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
-                                💻 Mỏng Nhẹ & Văn Phòng
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="demand" value="flagship" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentDemand == 'flagship' ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
-                                💎 Cao Cấp / Flagship
-                            </span>
-                        </label>
-                    </div>
-                </div>
+                <!-- Phần Thân Bộ Lọc: Trượt lên / xuống khi bấm -->
+                <div x-show="expanded" 
+                     x-collapse
+                     x-transition:enter="transition ease-out duration-300"
+                     x-transition:enter-start="opacity-0 -translate-y-2"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-200"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 -translate-y-2"
+                     class="space-y-4 pt-4 border-t border-slate-800/80">
 
-                <!-- Hàng 3: Lọc theo Khoảng giá -->
-                <div class="space-y-2 pt-2 border-t border-slate-800/60">
-                    <span class="text-slate-400 font-semibold block">Khoảng giá:</span>
-                    <div class="flex flex-wrap gap-2">
-                        @php $currentPriceRange = request('price_range', ''); @endphp
-                        <label class="cursor-pointer">
-                            <input type="radio" name="price_range" value="" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ empty($currentPriceRange) ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
-                                Tất cả mức giá
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="price_range" value="under_5m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == 'under_5m' ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
-                                Dưới 5 triệu
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="price_range" value="5m_15m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == '5m_15m' ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
-                                5 - 15 triệu
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="price_range" value="15m_25m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == '15m_25m' ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
-                                15 - 25 triệu
-                            </span>
-                        </label>
-                        <label class="cursor-pointer">
-                            <input type="radio" name="price_range" value="above_25m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == 'above_25m' ? 'checked' : '' }}>
-                            <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
-                                Trên 25 triệu
-                            </span>
-                        </label>
-                    </div>
-                </div>
-
-                <!-- Hàng 4: Lọc theo Cấu hình RAM & Ổ cứng -->
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800/60">
-                    <!-- RAM -->
+                    <!-- Lọc theo Nhu Cầu Nhanh (Demand Pills) -->
                     <div class="space-y-2">
-                        <span class="text-slate-400 font-semibold block">Dung lượng RAM:</span>
+                        <span class="text-slate-400 font-semibold block">Nhu cầu sử dụng:</span>
                         <div class="flex flex-wrap gap-2">
-                            @foreach(['8GB', '16GB', '32GB'] as $ramVal)
-                                @php
-                                    $checkedRam = is_array(request('ram')) ? in_array($ramVal, request('ram')) : request('ram') == $ramVal;
-                                @endphp
-                                <label class="cursor-pointer">
-                                    <input type="checkbox" name="ram[]" value="{{ $ramVal }}" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $checkedRam ? 'checked' : '' }}>
-                                    <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10 peer-checked:text-cyan-400 transition block font-mono font-bold">
-                                        {{ $ramVal }}
-                                    </span>
-                                </label>
-                            @endforeach
+                            @php $currentDemand = request('demand', ''); @endphp
+                            <label class="cursor-pointer">
+                                <input type="radio" name="demand" value="" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ empty($currentDemand) ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
+                                    Tất cả nhu cầu
+                                </span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="demand" value="gaming" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentDemand == 'gaming' ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
+                                    🎮 Chiến Game & Đồ Họa
+                                </span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="demand" value="office" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentDemand == 'office' ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
+                                    💻 Mỏng Nhẹ & Văn Phòng
+                                </span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="demand" value="flagship" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentDemand == 'flagship' ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:bg-gradient-to-r peer-checked:from-rose-600 peer-checked:to-red-500 peer-checked:text-white peer-checked:border-rose-500 transition block font-medium">
+                                    💎 Cao Cấp / Flagship
+                                </span>
+                            </label>
                         </div>
                     </div>
 
-                    <!-- Ổ cứng / Bộ nhớ trong -->
-                    <div class="space-y-2">
-                        <span class="text-slate-400 font-semibold block">Ổ cứng / ROM:</span>
-                        <div class="flex flex-wrap gap-2">
-                            @foreach(['256GB', '512GB', '1TB'] as $storageVal)
-                                @php
-                                    $checkedStorage = is_array(request('storage')) ? in_array($storageVal, request('storage')) : request('storage') == $storageVal;
-                                @endphp
-                                <label class="cursor-pointer">
-                                    <input type="checkbox" name="storage[]" value="{{ $storageVal }}" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $checkedStorage ? 'checked' : '' }}>
-                                    <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10 peer-checked:text-cyan-400 transition block font-mono font-bold">
-                                        {{ $storageVal }}
-                                    </span>
-                                </label>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Hàng 5: Lọc theo Thương hiệu -->
-                @if(isset($brands) && $brands->count() > 0)
+                    <!-- Lọc theo Khoảng giá -->
                     <div class="space-y-2 pt-2 border-t border-slate-800/60">
-                        <span class="text-slate-400 font-semibold block">Thương hiệu:</span>
-                        <div class="flex flex-wrap gap-2 items-center">
-                            @foreach($brands as $brand)
-                                @php
-                                    $checked = is_array(request('brand')) ? in_array($brand->id, request('brand')) : request('brand') == $brand->id;
-                                @endphp
-                                <label class="cursor-pointer">
-                                    <input type="checkbox" name="brand[]" value="{{ $brand->id }}" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $checked ? 'checked' : '' }}>
-                                    <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-semibold">
-                                        {{ $brand->name }}
-                                    </span>
-                                </label>
-                            @endforeach
-
-                            <!-- Nút Xóa toàn bộ lọc -->
-                            @if(request()->hasAny(['price_range', 'brand', 'keyword', 'sort', 'category', 'ram', 'storage', 'demand']))
-                                <a href="/" class="px-3 py-1.5 text-xs text-rose-400 hover:text-rose-300 hover:underline transition ml-auto font-semibold">
-                                    ✕ Xóa tất cả bộ lọc
-                                </a>
-                            @endif
+                        <span class="text-slate-400 font-semibold block">Khoảng giá:</span>
+                        <div class="flex flex-wrap gap-2">
+                            @php $currentPriceRange = request('price_range', ''); @endphp
+                            <label class="cursor-pointer">
+                                <input type="radio" name="price_range" value="" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ empty($currentPriceRange) ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
+                                    Tất cả mức giá
+                                </span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="price_range" value="under_5m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == 'under_5m' ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
+                                    Dưới 5 triệu
+                                </span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="price_range" value="5m_15m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == '5m_15m' ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
+                                    5 - 15 triệu
+                                </span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="price_range" value="15m_25m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == '15m_25m' ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
+                                    15 - 25 triệu
+                                </span>
+                            </label>
+                            <label class="cursor-pointer">
+                                <input type="radio" name="price_range" value="above_25m" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $currentPriceRange == 'above_25m' ? 'checked' : '' }}>
+                                <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-medium">
+                                    Trên 25 triệu
+                                </span>
+                            </label>
                         </div>
                     </div>
-                @endif
 
+                    <!-- Lọc RAM & Ổ cứng -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2 border-t border-slate-800/60">
+                        <div class="space-y-2">
+                            <span class="text-slate-400 font-semibold block">Dung lượng RAM:</span>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(['8GB', '16GB', '32GB'] as $ramVal)
+                                    @php
+                                        $checkedRam = is_array(request('ram')) ? in_array($ramVal, request('ram')) : request('ram') == $ramVal;
+                                    @endphp
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" name="ram[]" value="{{ $ramVal }}" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $checkedRam ? 'checked' : '' }}>
+                                        <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10 peer-checked:text-cyan-400 transition block font-mono font-bold">
+                                            {{ $ramVal }}
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+
+                        <div class="space-y-2">
+                            <span class="text-slate-400 font-semibold block">Ổ cứng / ROM:</span>
+                            <div class="flex flex-wrap gap-2">
+                                @foreach(['256GB', '512GB', '1TB'] as $storageVal)
+                                    @php
+                                        $checkedStorage = is_array(request('storage')) ? in_array($storageVal, request('storage')) : request('storage') == $storageVal;
+                                    @endphp
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" name="storage[]" value="{{ $storageVal }}" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $checkedStorage ? 'checked' : '' }}>
+                                        <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-cyan-500 peer-checked:bg-cyan-500/10 peer-checked:text-cyan-400 transition block font-mono font-bold">
+                                            {{ $storageVal }}
+                                        </span>
+                                    </label>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Lọc Thương hiệu -->
+                    @if(isset($brands) && $brands->count() > 0)
+                        <div class="space-y-2 pt-2 border-t border-slate-800/60">
+                            <span class="text-slate-400 font-semibold block">Thương hiệu:</span>
+                            <div class="flex flex-wrap gap-2 items-center">
+                                @foreach($brands as $brand)
+                                    @php
+                                        $checked = is_array(request('brand')) ? in_array($brand->id, request('brand')) : request('brand') == $brand->id;
+                                    @endphp
+                                    <label class="cursor-pointer">
+                                        <input type="checkbox" name="brand[]" value="{{ $brand->id }}" onchange="document.getElementById('filterForm').submit()" class="hidden peer" {{ $checked ? 'checked' : '' }}>
+                                        <span class="px-3 py-1.5 rounded-xl border border-slate-800 bg-slate-950 text-slate-400 peer-checked:border-rose-500 peer-checked:bg-rose-500/10 peer-checked:text-rose-400 transition block font-semibold">
+                                            {{ $brand->name }}
+                                        </span>
+                                    </label>
+                                @endforeach
+
+                                @if(request()->hasAny(['price_range', 'brand', 'keyword', 'sort', 'category', 'ram', 'storage', 'demand']))
+                                    <a href="/" class="px-3 py-1.5 text-xs text-rose-400 hover:text-rose-300 hover:underline transition ml-auto font-semibold">
+                                        ✕ Xóa tất cả bộ lọc
+                                    </a>
+                                @endif
+                            </div>
+                        </div>
+                    @endif
+
+                </div>
             </form>
         </div>
 

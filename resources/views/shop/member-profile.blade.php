@@ -225,9 +225,14 @@
                                     @endforeach
                                     <div class="pt-2 border-t border-slate-800 flex justify-between items-center text-xs">
                                         <span class="text-slate-400">Thanh toán: <strong class="text-slate-200">{{ $latestOrder->payment_method }}</strong></span>
-                                        <button @click="showOrderDetailModal(@js($latestOrder->load('items')))" class="text-xs text-rose-400 font-semibold hover:underline cursor-pointer">
-                                            Xem chi tiết &gt;
-                                        </button>
+                                        <div class="flex items-center gap-2">
+                                            <a href="{{ route('orders.invoice', $latestOrder->id) }}" target="_blank" class="px-3 py-1 bg-slate-900 hover:bg-slate-800 border border-rose-500/50 text-rose-400 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1">
+                                                <span>📄</span> In Hóa Đơn
+                                            </a>
+                                            <button @click="showOrderDetailModal(@js($latestOrder->load('items')))" class="text-xs text-rose-400 font-semibold hover:underline cursor-pointer">
+                                                Xem chi tiết &gt;
+                                            </button>
+                                        </div>
                                     </div>
                                 </div>
                             @else
@@ -471,7 +476,7 @@
                                             <span class="text-slate-400">Thanh toán: <strong class="text-slate-200">{{ $order->payment_method }} ({{ $order->payment_status }})</strong></span>
                                             <div class="flex items-center gap-2">
                                                 <span class="font-mono font-bold text-white text-sm mr-2">Tổng: <span class="text-rose-500">{{ number_format($order->total_price, 0, ',', '.') }}₫</span></span>
-                                                
+
                                                 @if($canCancel)
                                                     <button type="button" @click="openCancelModal(@js($order))" class="px-3 py-1.5 bg-slate-900 hover:bg-rose-950/60 border border-rose-800/40 text-rose-400 rounded-lg text-xs font-semibold transition cursor-pointer">
                                                         Hủy Đơn
@@ -1124,9 +1129,19 @@
                     </div>
                 </div>
 
-                <div class="pt-2 flex gap-3">
+                <div class="pt-2 flex flex-wrap gap-3">
+                    <!-- Nút Xuất Hóa Đơn PDF Trong Modal -->
+                    <a :href="'/orders/' + (selectedOrder ? selectedOrder.id : '') + '/invoice'" 
+                       target="_blank"
+                       class="flex-1 min-w-[150px] py-3 bg-slate-950 border border-rose-500/60 hover:bg-rose-500/10 text-rose-400 font-bold rounded-xl text-center transition flex items-center justify-center gap-2 shadow">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                        </svg>
+                        <span>In Hóa Đơn PDF</span>
+                    </a>
+
                     <template x-if="selectedOrder && (selectedOrder.status === 'Đã giao' || selectedOrder.status === 'Đã nhận hàng')">
-                        <div class="flex-1">
+                        <div class="flex-1 min-w-[150px]">
                             <template x-if="selectedOrder.return_request">
                                 <button type="button" disabled class="w-full py-3 bg-slate-950 border border-amber-500/40 text-amber-400/80 font-bold rounded-xl cursor-not-allowed opacity-80 flex items-center justify-center gap-1.5">
                                     <span>🔄</span> 
@@ -1144,7 +1159,7 @@
                         </div>
                     </template>
 
-                    <button type="button" @click="selectedOrder = null" class="flex-1 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow transition cursor-pointer">Đóng</button>
+                    <button type="button" @click="selectedOrder = null" class="flex-1 min-w-[100px] py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl shadow transition cursor-pointer">Đóng</button>
                 </div>
             </div>
         </div>

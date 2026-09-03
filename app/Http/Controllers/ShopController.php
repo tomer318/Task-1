@@ -230,4 +230,47 @@ class ShopController extends Controller
 
         return view('shop.product', compact('product', 'groupedSpecs', 'relatedProducts', 'comparableProducts'));
     }
+
+    /**
+     * API gợi ý sản phẩm realtime cho thanh tìm kiếm
+     */
+    public function searchSuggestions(Request $request)
+    {
+        $keyword = trim($request->input('q', ''));
+
+        if (mb_strlen($keyword) < 2) {
+            return response()->json([]);
+        }
+
+        $products = Product::with(['category', 'brand', 'images'])
+            ->where(function ($query) use ($keyword) {
+                $query->where('name', 'like', '%' . $keyword . '%')
+                      ->orWhereHas('brand', function ($q) use ($keyword) {
+                          $q->where('name', 'like', '%' . $keyword . '%');
+                      })
+                      ->orWhereHas('category', function ($q) use ($keyword) {
+                          $q->where('name', 'like', '%' . $keyword . '%');
+                      });
+            })
+            ->take(6)
+            ->get()
+            ->map(function ($p) {
+                $image = $p->images->first() 
+                    ? asset('storage/' . $p->images->first()->image_path)
+                    : ($p->image ? asset('storage/' . $p->image) : null);
+
+                return [
+                    'id' => $p->id,
+                    'name' => $p->name,
+                    'slug' => $p->slug,
+                    'url' => route('shop.product', $p->slug),
+                    'price' => number_format($p->price, 0, ',', '.') . '₫',
+                    'brand' => $p->brand->name ?? 'TechZone',
+                    'category' => $p->category->name ?? '',
+                    'image' => $image,
+                ];
+            });
+
+        return response()->json($products);
+    }
 }

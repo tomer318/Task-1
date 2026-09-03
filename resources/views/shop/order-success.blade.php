@@ -20,6 +20,18 @@
             <a href="{{ route('home') }}" class="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-800 border border-slate-700 text-white font-bold rounded-xl text-xs transition">
                 &larr; Tiếp tục mua sắm
             </a>
+
+            @if(session('order_id') || session('order_code'))
+                <a href="{{ route('orders.invoice', session('order_id') ?? session('order_code')) }}" 
+                   target="_blank"
+                   class="w-full sm:w-auto px-6 py-3.5 bg-slate-900 hover:bg-slate-800 border border-rose-500/50 text-rose-400 font-bold rounded-xl text-xs transition flex items-center justify-center gap-2 shadow">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                    </svg>
+                    <span>In / Tải Hóa Đơn PDF</span>
+                </a>
+            @endif
+
             <a href="{{ route('profile.orders') }}" class="w-full sm:w-auto px-6 py-3.5 bg-gradient-to-r from-rose-600 to-red-500 hover:from-rose-500 hover:to-red-400 text-white font-bold rounded-xl text-xs shadow-lg shadow-rose-600/30 transition">
                 Xem lịch sử đơn hàng &rarr;
             </a>

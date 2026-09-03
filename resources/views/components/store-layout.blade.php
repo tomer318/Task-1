@@ -7,12 +7,12 @@
 
     <title>{{ $title ?? 'TECHZONE' }} - Siêu Thị Điện Máy & Công Nghệ</title>
 
-    <link rel="preconnect" href="https://fonts.bunny.net">
-    <link href="https://fonts.bunny.net/css?family=instrument-sans:400,500,600,700" rel="stylesheet" />
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
-    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
-    <style>body { font-family: 'Instrument Sans', sans-serif; }</style>
+    <style>body { font-family: 'Be Vietnam Pro', sans-serif; }</style>
 </head>
 <body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col selection:bg-rose-500 selection:text-white"
       x-data="{ openCart: false }">
@@ -37,8 +37,124 @@
                 </div>
             </a>
 
+            <!-- Form Tìm Kiếm Sản Phẩm Realtime Gợi Ý -->
+            <div class="flex-1 max-w-lg mx-4 hidden sm:block relative"
+                 x-data="{
+                     query: '{{ request('keyword') }}',
+                     results: [],
+                     loading: false,
+                     isOpen: false,
+                     fetchResults() {
+                         if (this.query.trim().length < 2) {
+                             this.results = [];
+                             this.isOpen = false;
+                             return;
+                         }
+                         this.loading = true;
+                         fetch(`/api/search-suggestions?q=${encodeURIComponent(this.query)}`)
+                             .then(res => res.json())
+                             .then(data => {
+                                 this.results = data;
+                                 this.isOpen = true;
+                             })
+                             .catch(() => { this.results = []; })
+                             .finally(() => { this.loading = false; });
+                     }
+                 }"
+                 @click.away="isOpen = false">
+                
+                <form action="/" method="GET">
+                    <div class="relative flex items-center">
+                        <input type="text" 
+                               name="keyword" 
+                               x-model="query"
+                               @input.debounce.300ms="fetchResults()"
+                               @focus="if(query.trim().length >= 2) fetchResults()"
+                               placeholder="Tìm kiếm laptop gaming, iPhone, tai nghe..." 
+                               autocomplete="off"
+                               class="w-full bg-slate-900 border border-slate-800 rounded-2xl py-2 pl-10 pr-8 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition shadow-inner">
+                        
+                        <div class="absolute left-3.5 flex items-center pointer-events-none text-slate-500">
+                            <template x-if="!loading">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                            </template>
+                            <template x-if="loading">
+                                <svg class="w-4 h-4 animate-spin text-rose-500" fill="none" viewBox="0 0 24 24">
+                                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"></path>
+                                </svg>
+                            </template>
+                        </div>
+
+                        <button type="button" 
+                                x-show="query.length > 0" 
+                                @click="query = ''; results = []; isOpen = false" 
+                                class="absolute right-3 text-slate-500 hover:text-slate-300 text-xs font-bold">
+                            ✕
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Dropdown danh sách gợi ý realtime -->
+                <div x-show="isOpen && (results.length > 0 || (query.trim().length >= 2 && !loading))"
+                     x-transition:enter="transition ease-out duration-200"
+                     x-transition:enter-start="opacity-0 translate-y-1"
+                     x-transition:enter-end="opacity-100 translate-y-0"
+                     x-transition:leave="transition ease-in duration-150"
+                     x-transition:leave-start="opacity-100 translate-y-0"
+                     x-transition:leave-end="opacity-0 translate-y-1"
+                     class="absolute top-full left-0 right-0 mt-2 bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden z-50 divide-y divide-slate-800/60"
+                     style="display: none;">
+                    
+                    <template x-if="results.length > 0">
+                        <div>
+                            <div class="px-3.5 py-2 text-[10px] font-bold text-slate-400 uppercase tracking-wider bg-slate-950/60 flex justify-between items-center">
+                                <span>Gợi ý sản phẩm phù hợp</span>
+                                <span class="font-mono text-rose-400" x-text="results.length + ' kết quả'"></span>
+                            </div>
+                            <div class="max-h-80 overflow-y-auto custom-scrollbar pr-1">
+                                <template x-for="item in results" :key="item.id">
+                                    <a :href="item.url" class="flex items-center gap-3 p-3 hover:bg-slate-800/70 transition group">
+                                        <div class="w-11 h-11 rounded-xl bg-slate-950 border border-slate-800/80 flex items-center justify-center shrink-0 overflow-hidden">
+                                            <template x-if="item.image">
+                                                <img :src="item.image" class="w-full h-full object-contain p-1 group-hover:scale-105 transition" :alt="item.name">
+                                            </template>
+                                            <template x-if="!item.image">
+                                                <span class="text-sm">⚡</span>
+                                            </template>
+                                        </div>
+                                        <div class="flex-1 min-w-0">
+                                            <div class="flex items-center gap-1.5 text-[10px] text-slate-400">
+                                                <span class="text-rose-400 font-bold uppercase" x-text="item.brand"></span>
+                                                <span>•</span>
+                                                <span x-text="item.category"></span>
+                                            </div>
+                                            <div class="text-xs font-semibold text-slate-200 group-hover:text-rose-400 truncate transition" x-text="item.name"></div>
+                                        </div>
+                                        <div class="text-xs font-bold text-rose-500 font-mono shrink-0" x-text="item.price"></div>
+                                    </a>
+                                </template>
+                            </div>
+                            <div class="p-2.5 bg-slate-950 text-center border-t border-slate-800">
+                                <a :href="'/?keyword=' + encodeURIComponent(query)" class="text-[11px] text-rose-400 hover:text-rose-300 font-semibold inline-flex items-center gap-1">
+                                    Xem tất cả kết quả cho "<span x-text="query"></span>" →
+                                </a>
+                            </div>
+                        </div>
+                    </template>
+
+                    <template x-if="results.length === 0 && !loading && query.trim().length >= 2">
+                        <div class="p-4 text-center text-xs text-slate-400">
+                            Không tìm thấy sản phẩm nào khớp với từ khóa "<span class="text-white" x-text="query"></span>"
+                        </div>
+                    </template>
+                </div>
+            </div>
+
             <!-- User & Cart Actions -->
-            <div class="flex items-center gap-4 text-xs font-semibold">
+            <div class="flex items-center gap-4 text-xs font-semibold shrink-0">
                 
                 <!-- Nút Giỏ Hàng Mở Drawer -->
                 <a href="{{ route('cart.index') }}" class="relative flex items-center gap-2 px-3.5 py-2 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl transition">
@@ -77,6 +193,24 @@
                     <a href="{{ route('register') }}" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-white rounded-xl transition">Đăng ký</a>
                 @endauth
             </div>
+        </div>
+
+        <!-- Thanh Tìm Kiếm phụ trên Mobile (màn hình nhỏ) -->
+        <div class="block sm:hidden px-4 pb-3">
+            <form action="/" method="GET">
+                <div class="relative flex items-center">
+                    <input type="text" 
+                           name="keyword" 
+                           value="{{ request('keyword') }}" 
+                           placeholder="Tìm kiếm sản phẩm..." 
+                           class="w-full bg-slate-900 border border-slate-800 rounded-xl py-2 pl-9 pr-8 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500">
+                    <div class="absolute left-3 flex items-center pointer-events-none text-slate-500">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                        </svg>
+                    </div>
+                </div>
+            </form>
         </div>
     </header>
 

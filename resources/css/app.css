@@ -1,3 +1,33 @@
+@import url('https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700;800&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+* {
+    font-family: 'Be Vietnam Pro', sans-serif !important;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+    width: 5px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+    background: #0f172a; /* Slate 900 */
+    border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+    background: #334155; /* Slate 700 */
+    border-radius: 9999px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: #e11d48; /* Rose 600 */
+}
+
+/* Hỗ trợ chuẩn Firefox */
+.custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: #334155 #0f172a;
+}
