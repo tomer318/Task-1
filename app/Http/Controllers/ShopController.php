@@ -131,6 +131,14 @@ class ShopController extends Controller
         $latestProducts = Product::with(['category', 'brand', 'images'])->latest()->take(8)->get();
         $featuredProducts = Product::with(['category', 'brand', 'images'])->where('price', '>', 15000000)->take(8)->get();
 
+        // Xử lý phản hồi AJAX không tải lại trang
+        if ($request->ajax() || $request->wantsJson()) {
+            return response()->json([
+                'html' => view('shop.partials.product-grid', compact('filteredProducts', 'categories', 'latestProducts', 'featuredProducts'))->render(),
+                'total' => $filteredProducts->total(),
+            ]);
+        }
+
         return view('welcome', compact('categories', 'brands', 'filteredProducts', 'latestProducts', 'featuredProducts'));
     }
 
